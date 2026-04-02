@@ -4,7 +4,11 @@ import psycopg2
 from datetime import date
 
 conn = psycopg2.connect(
-"postgresql://postgres.tepykxeozlbktzjbgzsl:T4NmeDh8W_M7%40-M@aws-1-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+    host="aws-1-sa-east-1.pooler.supabase.com",
+    database="postgres",
+    user="postgres.tepykxeozlbktzjbgzsl",
+    password="T4NmeDh8W_M7@-M",
+    port=6543
 )
 
 cursor = conn.cursor()

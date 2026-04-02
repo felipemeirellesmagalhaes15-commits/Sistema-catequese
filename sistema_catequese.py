@@ -1,43 +1,14 @@
 import streamlit as st
 import pandas as pd
+import psycopg2
 from datetime import date
-import os
 
-ARQ_CATEQUIZANDOS = "catequizandos.xlsx"
-ARQ_PRESENCA = "presenca.xlsx"
+conn = psycopg2.connect(
+"postgresql://postgres.tepykxeozlbktzjbgzsl:T4NmeDh8W_M7@-M@aws-1-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+)
 
-def carregar_catequizandos():
-    if os.path.exists(ARQ_CATEQUIZANDOS):
-        return pd.read_excel(ARQ_CATEQUIZANDOS)
-    else:
-        df = pd.DataFrame(columns=[
-            "Nome",
-            "Turma",
-            "Comunidade",
-            "Telefone",
-            "Sacramento"
-        ])
-        df.to_excel(ARQ_CATEQUIZANDOS, index=False)
-        return df
+cursor = conn.cursor()
 
-def salvar_catequizandos(df):
-    df.to_excel(ARQ_CATEQUIZANDOS, index=False)
-
-def carregar_presenca():
-    if os.path.exists(ARQ_PRESENCA):
-        return pd.read_excel(ARQ_PRESENCA)
-    else:
-        df = pd.DataFrame(columns=[
-            "Data",
-            "Nome",
-            "Turma",
-            "Presenca"
-        ])
-        df.to_excel(ARQ_PRESENCA, index=False)
-        return df
-
-def salvar_presenca(df):
-    df.to_excel(ARQ_PRESENCA, index=False)
 
 st.title("📖 Sistema de Gestão da Catequese")
 
@@ -51,8 +22,7 @@ menu = st.sidebar.selectbox(
     ]
 )
 
-df_cate = carregar_catequizandos()
-
+# CADASTRO
 if menu == "Cadastrar Catequizando":
 
     st.subheader("Cadastro de Catequizando")
@@ -68,65 +38,97 @@ if menu == "Cadastrar Catequizando":
 
     if st.button("Salvar"):
 
-        novo = pd.DataFrame([[nome, turma, comunidade, telefone, sacramento]],
-        columns=df_cate.columns)
+        cursor.execute(
+            """
+            INSERT INTO catequizandos
+            (nome,turma,comunidade,telefone,sacramento)
+            VALUES (%s,%s,%s,%s,%s)
+            """,
+            (nome,turma,comunidade,telefone,sacramento)
+        )
 
-        df_cate = pd.concat([df_cate, novo], ignore_index=True)
-
-        salvar_catequizandos(df_cate)
+        conn.commit()
 
         st.success("Catequizando cadastrado!")
 
+# LISTA
 elif menu == "Lista de Catequizandos":
 
-    st.subheader("Lista Geral")
+    cursor.execute("SELECT * FROM catequizandos")
 
-    st.dataframe(df_cate)
+    dados = cursor.fetchall()
 
-elif menu == "Registrar Presença":
-
-    st.subheader("Registro de Presença")
-
-    turma = st.selectbox(
-        "Selecione a turma",
-        df_cate["Turma"].unique()
+    df = pd.DataFrame(
+        dados,
+        columns=[
+            "ID",
+            "Nome",
+            "Turma",
+            "Comunidade",
+            "Telefone",
+            "Sacramento"
+        ]
     )
 
-    lista = df_cate[df_cate["Turma"] == turma]
+    st.dataframe(df)
+
+# PRESENÇA
+elif menu == "Registrar Presença":
+
+    cursor.execute("SELECT DISTINCT turma FROM catequizandos")
+
+    turmas = [t[0] for t in cursor.fetchall()]
+
+    turma = st.selectbox("Selecione a turma", turmas)
+
+    cursor.execute(
+        "SELECT nome FROM catequizandos WHERE turma=%s",
+        (turma,)
+    )
+
+    alunos = cursor.fetchall()
 
     presencas = []
 
-    for nome in lista["Nome"]:
+    for aluno in alunos:
 
-        presente = st.checkbox(nome)
+        presente = st.checkbox(aluno[0])
 
-        presencas.append((nome, "P" if presente else "F"))
+        presencas.append((aluno[0], "P" if presente else "F"))
 
     if st.button("Salvar Presença"):
 
-        df_pres = carregar_presenca()
+        hoje = date.today()
 
         for nome, status in presencas:
 
-            nova = pd.DataFrame(
-                [[date.today(), nome, turma, status]],
-                columns=df_pres.columns
+            cursor.execute(
+                """
+                INSERT INTO presenca
+                (data,nome,turma,presenca)
+                VALUES (%s,%s,%s,%s)
+                """,
+                (hoje, nome, turma, status)
             )
 
-            df_pres = pd.concat([df_pres, nova], ignore_index=True)
-
-        salvar_presenca(df_pres)
+        conn.commit()
 
         st.success("Presença registrada!")
 
+# RELATÓRIO
 elif menu == "Relatório de Faltas":
 
-    st.subheader("Relatório de Faltas")
+    cursor.execute(
+        """
+        SELECT nome, COUNT(*)
+        FROM presenca
+        WHERE presenca='F'
+        GROUP BY nome
+        """
+    )
 
-    df_pres = carregar_presenca()
+    dados = cursor.fetchall()
 
-    faltas = df_pres[df_pres["Presenca"] == "F"]
+    df = pd.DataFrame(dados, columns=["Nome", "Faltas"])
 
-    relatorio = faltas["Nome"].value_counts()
-
-    st.write(relatorio)
+    st.dataframe(df)

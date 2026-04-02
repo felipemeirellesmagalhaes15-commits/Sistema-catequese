@@ -14,7 +14,7 @@ conn = psycopg2.connect(
 cursor = conn.cursor()
 
 
-st.title("📖 Sistema de Gestão da Catequese")
+st.title("📖 Paroquia Nossa Senhora da Conceição de Avelar")
 
 menu = st.sidebar.selectbox(
     "Menu",

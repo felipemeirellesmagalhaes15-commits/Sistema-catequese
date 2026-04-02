@@ -33,7 +33,10 @@ if menu == "Cadastrar Catequizando":
 
     nome = st.text_input("Nome")
     turma = st.text_input("Turma")
-    comunidade = st.text_input("Comunidade")
+    comunidade = st.selectbox(
+        "Comunidade",
+        ["Avelar", "Granja", "Antonio Joaquim","Vista Alegre"]
+    )
     telefone = st.text_input("Telefone")
     sacramento = st.selectbox(
         "Sacramento",

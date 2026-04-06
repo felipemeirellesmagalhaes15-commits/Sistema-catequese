@@ -3,12 +3,25 @@ import pandas as pd
 import psycopg2
 from datetime import date
 
-
 st.set_page_config(
     page_title="Sistema Catequese",
     page_icon="📖",
     layout="wide"
 )
+
+# ----------------------------
+# CONEXÃO BANCO
+# ----------------------------
+
+conn = psycopg2.connect(
+    host=st.secrets["DB_HOST"],
+    database=st.secrets["DB_NAME"],
+    user=st.secrets["DB_USER"],
+    password=st.secrets["DB_PASSWORD"],
+    port=st.secrets["DB_PORT"]
+)
+
+cursor = conn.cursor()
 
 # ----------------------------
 # LOGIN
@@ -25,7 +38,7 @@ def tela_login():
     if st.button("Entrar"):
 
         cursor.execute(
-            "SELECT * FROM usuarios WHERE usuario=%s AND senha=%s",
+            "SELECT usuario FROM usuarios WHERE usuario=%s AND senha=%s",
             (usuario, senha)
         )
 
@@ -40,27 +53,12 @@ def tela_login():
         else:
             st.error("Usuário ou senha inválidos")
 
-
 if "logado" not in st.session_state:
     st.session_state["logado"] = False
 
 if not st.session_state["logado"]:
     tela_login()
     st.stop()
-
-# ----------------------------
-# CONEXÃO BANCO
-# ----------------------------
-
-conn = psycopg2.connect(
-    host=st.secrets["DB_HOST"],
-    database=st.secrets["DB_NAME"],
-    user=st.secrets["DB_USER"],
-    password=st.secrets["DB_PASSWORD"],
-    port=st.secrets["DB_PORT"]
-)
-
-cursor = conn.cursor()
 
 # ----------------------------
 # INTERFACE
@@ -98,7 +96,7 @@ if menu == "Cadastrar Catequizando":
 
     comunidade = st.selectbox(
         "Comunidade",
-        ["Avelar", "Granja", "Antonio Joaquim","Vista Alegre"]
+        ["Avelar", "Granja", "Antonio Joaquim", "Vista Alegre"]
     )
 
     telefone = st.text_input("Telefone")
@@ -110,9 +108,7 @@ if menu == "Cadastrar Catequizando":
 
     data_cadastro = st.date_input("Data do Cadastro", date.today())
 
-    data_formatada = data_cadastro.strftime("%d/%m/%Y")
-
-    st.text(f"Data selecionada: {data_formatada}")
+    st.text(f"Data selecionada: {data_cadastro.strftime('%d/%m/%Y')}")
 
     if st.button("Salvar"):
 
@@ -122,7 +118,7 @@ if menu == "Cadastrar Catequizando":
             (nome,turma,comunidade,telefone,sacramento,data_cadastro)
             VALUES (%s,%s,%s,%s,%s,%s)
             """,
-            (nome,turma,comunidade,telefone,sacramento,data_cadastro)
+            (nome, turma, comunidade, telefone, sacramento, data_cadastro)
         )
 
         conn.commit()
@@ -162,9 +158,7 @@ elif menu == "Lista de Catequizandos":
         ]
     )
 
-    df["Data Cadastro"] = pd.to_datetime(df["Data Cadastro"]).dt.strftime("%d/%m/%Y")
-
-    st.dataframe(df)
+    st.dataframe(df, use_container_width=True)
 
 # ----------------------------
 # PRESENÇA
@@ -175,6 +169,8 @@ elif menu == "Registrar Presença":
     st.subheader("Registro de Presença")
 
     data_encontro = st.date_input("Data do encontro", date.today())
+
+    st.text(f"Data do encontro: {data_encontro.strftime('%d/%m/%Y')}")
 
     cursor.execute("SELECT DISTINCT turma FROM catequizandos")
 
@@ -214,9 +210,10 @@ elif menu == "Registrar Presença":
 
         st.success("Presença registrada!")
 
-# --------------------
+# ----------------------------
 # USUÁRIOS
-#---------------------
+# ----------------------------
+
 elif menu == "Usuários do Sistema":
 
     st.subheader("Cadastro de Usuários")
@@ -264,6 +261,7 @@ elif menu == "Usuários do Sistema":
     )
 
     st.dataframe(df, use_container_width=True)
+
 # ----------------------------
 # RELATÓRIO
 # ----------------------------

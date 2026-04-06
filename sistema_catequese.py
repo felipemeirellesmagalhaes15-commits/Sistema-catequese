@@ -106,6 +106,8 @@ if menu == "Cadastrar Catequizando":
 
     data_cadastro = st.date_input("Data do Cadastro", date.today())
 
+    st.write("Data selecionada:", data_cadastro.strftime("%d/%m/%Y"))
+
     if st.button("Salvar"):
 
         cursor.execute(

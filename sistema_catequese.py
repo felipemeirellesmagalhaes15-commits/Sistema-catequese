@@ -2,9 +2,7 @@ import streamlit as st
 import pandas as pd
 import psycopg2
 from datetime import date
-import locale
 
-locale.setlocale(locale.LC_TIME, 'pt_BR.UTF-8')
 
 st.set_page_config(
     page_title="Sistema Catequese",
@@ -53,11 +51,11 @@ if not st.session_state["logado"]:
 # ----------------------------
 
 conn = psycopg2.connect(
-    host="aws-1-sa-east-1.pooler.supabase.com",
-    database="postgres",
-    user="postgres.tepykxeozlbktzjbgzsl",
-    password="T4NmeDh8W_M7@-M",
-    port=6543
+    host=st.secrets["DB_HOST"],
+    database=st.secrets["DB_NAME"],
+    user=st.secrets["DB_USER"],
+    password=st.secrets["DB_PASSWORD"],
+    port=st.secrets["DB_PORT"]
 )
 
 cursor = conn.cursor()
@@ -156,7 +154,7 @@ elif menu == "Lista de Catequizandos":
 
     df["Data Cadastro"] = pd.to_datetime(df["Data Cadastro"]).dt.strftime("%d/%m/%Y")
 
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(df)
 
 # ----------------------------
 # PRESENÇA

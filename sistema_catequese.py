@@ -2,6 +2,9 @@ import streamlit as st
 import pandas as pd
 import psycopg2
 from datetime import date
+import locale
+
+locale.setlocale(locale.LC_TIME, 'pt_BR.UTF-8')
 
 st.set_page_config(
     page_title="Sistema Catequese",

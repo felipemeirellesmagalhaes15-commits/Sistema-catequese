@@ -14,11 +14,6 @@ st.set_page_config(
 # LOGIN
 # ----------------------------
 
-usuarios = {
-    "admin": "1234",
-    "catequista": "1234"
-}
-
 def tela_login():
 
     st.title("📖 Sistema da Catequese")
@@ -29,7 +24,14 @@ def tela_login():
 
     if st.button("Entrar"):
 
-        if usuario in usuarios and usuarios[usuario] == senha:
+        cursor.execute(
+            "SELECT * FROM usuarios WHERE usuario=%s AND senha=%s",
+            (usuario, senha)
+        )
+
+        resultado = cursor.fetchone()
+
+        if resultado:
 
             st.session_state["logado"] = True
             st.session_state["usuario"] = usuario
@@ -78,7 +80,8 @@ menu = st.sidebar.selectbox(
         "Cadastrar Catequizando",
         "Lista de Catequizandos",
         "Registrar Presença",
-        "Relatório de Faltas"
+        "Relatório de Faltas",
+        "Usuários do Sistema"
     ]
 )
 
@@ -133,8 +136,15 @@ if menu == "Cadastrar Catequizando":
 elif menu == "Lista de Catequizandos":
 
     cursor.execute("""
-        SELECT id,nome,turma,comunidade,telefone,sacramento,data_cadastro
-        FROM catequizandos
+    SELECT
+    id,
+    nome,
+    turma,
+    comunidade,
+    telefone,
+    sacramento,
+    TO_CHAR(data_cadastro,'DD/MM/YYYY')
+    FROM catequizandos
     """)
 
     dados = cursor.fetchall()
@@ -204,6 +214,56 @@ elif menu == "Registrar Presença":
 
         st.success("Presença registrada!")
 
+# --------------------
+# USUÁRIOS
+#---------------------
+elif menu == "Usuários do Sistema":
+
+    st.subheader("Cadastro de Usuários")
+
+    nome = st.text_input("Nome do usuário")
+    usuario = st.text_input("Login")
+    senha = st.text_input("Senha", type="password")
+
+    perfil = st.selectbox(
+        "Perfil",
+        ["admin", "catequista"]
+    )
+
+    if st.button("Salvar usuário"):
+
+        cursor.execute(
+            """
+            INSERT INTO usuarios (usuario, senha, nome, perfil)
+            VALUES (%s,%s,%s,%s)
+            """,
+            (usuario, senha, nome, perfil)
+        )
+
+        conn.commit()
+
+        st.success("Usuário cadastrado com sucesso!")
+
+    st.subheader("Usuários cadastrados")
+
+    cursor.execute("""
+    SELECT id,nome,usuario,perfil
+    FROM usuarios
+    """)
+
+    dados = cursor.fetchall()
+
+    df = pd.DataFrame(
+        dados,
+        columns=[
+            "ID",
+            "Nome",
+            "Usuário",
+            "Perfil"
+        ]
+    )
+
+    st.dataframe(df, use_container_width=True)
 # ----------------------------
 # RELATÓRIO
 # ----------------------------

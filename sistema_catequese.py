@@ -3,6 +3,52 @@ import pandas as pd
 import psycopg2
 from datetime import date
 
+st.set_page_config(
+    page_title="Sistema Catequese",
+    page_icon="📖",
+    layout="wide"
+)
+
+# ----------------------------
+# LOGIN
+# ----------------------------
+
+usuarios = {
+    "admin": "1234",
+    "catequista": "1234"
+}
+
+def tela_login():
+
+    st.title("📖 Sistema da Catequese")
+    st.subheader("Paróquia Nossa Senhora da Conceição de Avelar")
+
+    usuario = st.text_input("Usuário")
+    senha = st.text_input("Senha", type="password")
+
+    if st.button("Entrar"):
+
+        if usuario in usuarios and usuarios[usuario] == senha:
+
+            st.session_state["logado"] = True
+            st.session_state["usuario"] = usuario
+            st.rerun()
+
+        else:
+            st.error("Usuário ou senha inválidos")
+
+
+if "logado" not in st.session_state:
+    st.session_state["logado"] = False
+
+if not st.session_state["logado"]:
+    tela_login()
+    st.stop()
+
+# ----------------------------
+# CONEXÃO BANCO
+# ----------------------------
+
 conn = psycopg2.connect(
     host="aws-1-sa-east-1.pooler.supabase.com",
     database="postgres",
@@ -13,8 +59,17 @@ conn = psycopg2.connect(
 
 cursor = conn.cursor()
 
+# ----------------------------
+# INTERFACE
+# ----------------------------
 
-st.title("📖 Paroquia Nossa Senhora da Conceição de Avelar")
+st.sidebar.success(f"Usuário: {st.session_state['usuario']}")
+
+if st.sidebar.button("Sair"):
+    st.session_state["logado"] = False
+    st.rerun()
+
+st.title("📖 Paróquia Nossa Senhora da Conceição de Avelar")
 
 menu = st.sidebar.selectbox(
     "Menu",
@@ -26,42 +81,56 @@ menu = st.sidebar.selectbox(
     ]
 )
 
+# ----------------------------
 # CADASTRO
+# ----------------------------
+
 if menu == "Cadastrar Catequizando":
 
     st.subheader("Cadastro de Catequizando")
 
     nome = st.text_input("Nome")
     turma = st.text_input("Turma")
+
     comunidade = st.selectbox(
         "Comunidade",
         ["Avelar", "Granja", "Antonio Joaquim","Vista Alegre"]
     )
+
     telefone = st.text_input("Telefone")
+
     sacramento = st.selectbox(
         "Sacramento",
         ["Primeira Eucaristia", "Crisma"]
     )
+
+    data_cadastro = st.date_input("Data do Cadastro", date.today())
 
     if st.button("Salvar"):
 
         cursor.execute(
             """
             INSERT INTO catequizandos
-            (nome,turma,comunidade,telefone,sacramento)
-            VALUES (%s,%s,%s,%s,%s)
+            (nome,turma,comunidade,telefone,sacramento,data_cadastro)
+            VALUES (%s,%s,%s,%s,%s,%s)
             """,
-            (nome,turma,comunidade,telefone,sacramento)
+            (nome,turma,comunidade,telefone,sacramento,data_cadastro)
         )
 
         conn.commit()
 
         st.success("Catequizando cadastrado!")
 
+# ----------------------------
 # LISTA
+# ----------------------------
+
 elif menu == "Lista de Catequizandos":
 
-    cursor.execute("SELECT * FROM catequizandos")
+    cursor.execute("""
+        SELECT id,nome,turma,comunidade,telefone,sacramento,data_cadastro
+        FROM catequizandos
+    """)
 
     dados = cursor.fetchall()
 
@@ -73,14 +142,24 @@ elif menu == "Lista de Catequizandos":
             "Turma",
             "Comunidade",
             "Telefone",
-            "Sacramento"
+            "Sacramento",
+            "Data Cadastro"
         ]
     )
 
-    st.dataframe(df)
+    df["Data Cadastro"] = pd.to_datetime(df["Data Cadastro"]).dt.strftime("%d/%m/%Y")
 
+    st.dataframe(df, use_container_width=True)
+
+# ----------------------------
 # PRESENÇA
+# ----------------------------
+
 elif menu == "Registrar Presença":
+
+    st.subheader("Registro de Presença")
+
+    data_encontro = st.date_input("Data do encontro", date.today())
 
     cursor.execute("SELECT DISTINCT turma FROM catequizandos")
 
@@ -105,8 +184,6 @@ elif menu == "Registrar Presença":
 
     if st.button("Salvar Presença"):
 
-        hoje = date.today()
-
         for nome, status in presencas:
 
             cursor.execute(
@@ -115,15 +192,20 @@ elif menu == "Registrar Presença":
                 (data,nome,turma,presenca)
                 VALUES (%s,%s,%s,%s)
                 """,
-                (hoje, nome, turma, status)
+                (data_encontro, nome, turma, status)
             )
 
         conn.commit()
 
         st.success("Presença registrada!")
 
+# ----------------------------
 # RELATÓRIO
+# ----------------------------
+
 elif menu == "Relatório de Faltas":
+
+    st.subheader("Relatório de Faltas")
 
     cursor.execute(
         """
@@ -138,4 +220,4 @@ elif menu == "Relatório de Faltas":
 
     df = pd.DataFrame(dados, columns=["Nome", "Faltas"])
 
-    st.dataframe(df)
+    st.dataframe(df, use_container_width=True)

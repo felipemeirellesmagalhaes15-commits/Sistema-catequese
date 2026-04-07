@@ -130,17 +130,41 @@ elif menu_principal == "Rotinas":
 
 if menu_principal == "Selecione":
 
-    st.subheader("Bem-vindo ao Sistema da Catequese")
+    st.subheader("📊 Painel da Catequese")
 
-    st.info(
-        """
-        Utilize o menu lateral para acessar as funcionalidades do sistema.
+    # TOTAL CATEQUIZANDOS
+    cursor.execute("SELECT COUNT(*) FROM catequizandos")
+    total_catequizandos = cursor.fetchone()[0]
 
-        Cadastros → Cadastro de Catequizandos e Usuários  
-        Consultas → Relatórios e Listagens  
-        Rotinas → Registro de Presença
-        """
-    )
+    # TOTAL TURMAS
+    cursor.execute("SELECT COUNT(DISTINCT turma) FROM catequizandos")
+    total_turmas = cursor.fetchone()[0]
+
+    # TOTAL PRESENÇAS
+    cursor.execute("SELECT COUNT(*) FROM presenca WHERE presenca='P'")
+    total_presencas = cursor.fetchone()[0]
+
+    # TOTAL FALTAS
+    cursor.execute("SELECT COUNT(*) FROM presenca WHERE presenca='F'")
+    total_faltas = cursor.fetchone()[0]
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric("Catequizandos", total_catequizandos)
+
+    with col2:
+        st.metric("Turmas", total_turmas)
+
+    with col3:
+        st.metric("Presenças", total_presencas)
+
+    with col4:
+        st.metric("Faltas", total_faltas)
+
+    st.divider()
+
+    st.info("Utilize o menu lateral para acessar os cadastros, consultas e rotinas.")
 
 # ----------------------------
 # CADASTRO CATEQUIZANDO
@@ -258,14 +282,22 @@ elif submenu == "Registro de Presença":
 
         for nome, status in presencas:
 
-            cursor.execute(
-                """
-                INSERT INTO presenca
-                (data,nome,turma,presenca)
-                VALUES (%s,%s,%s,%s)
-                """,
-                (data_encontro, nome, turma, status)
-            )
+            try:
+
+                cursor.execute(
+                    """
+                    INSERT INTO presenca
+                    (data,nome,turma,presenca)
+                    VALUES (%s,%s,%s,%s)
+                    """,
+                    (data_encontro, nome, turma, status)
+                )
+
+            except psycopg2.errors.UniqueViolation:
+
+                conn.rollback()
+
+                st.warning(f"{nome} já possui presença registrada nesta data.")
 
         conn.commit()
 

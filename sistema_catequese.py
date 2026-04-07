@@ -72,22 +72,81 @@ if st.sidebar.button("Sair"):
 
 st.title("📖 Paróquia Nossa Senhora da Conceição de Avelar")
 
-menu = st.sidebar.selectbox(
+# ----------------------------
+# MENU PRINCIPAL
+# ----------------------------
+
+menu_principal = st.sidebar.selectbox(
     "Menu",
     [
-        "Cadastrar Catequizando",
-        "Lista de Catequizandos",
-        "Registrar Presença",
-        "Relatório de Faltas",
-        "Usuários do Sistema"
+        "Selecione",
+        "Cadastros",
+        "Consultas",
+        "Rotinas"
     ]
 )
 
+submenu = None
+
 # ----------------------------
-# CADASTRO
+# SUBMENUS
 # ----------------------------
 
-if menu == "Cadastrar Catequizando":
+if menu_principal == "Cadastros":
+
+    submenu = st.sidebar.selectbox(
+        "Cadastros",
+        [
+            "Selecione",
+            "Cadastro de Catequizando",
+            "Cadastro de Usuários"
+        ]
+    )
+
+elif menu_principal == "Consultas":
+
+    submenu = st.sidebar.selectbox(
+        "Consultas",
+        [
+            "Selecione",
+            "Lista de Catequizandos",
+            "Relatório de Faltas"
+        ]
+    )
+
+elif menu_principal == "Rotinas":
+
+    submenu = st.sidebar.selectbox(
+        "Rotinas",
+        [
+            "Selecione",
+            "Registro de Presença"
+        ]
+    )
+
+# ----------------------------
+# TELA INICIAL
+# ----------------------------
+
+if menu_principal == "Selecione":
+
+    st.subheader("Bem-vindo ao Sistema da Catequese")
+
+    st.info(
+        """
+        Utilize o menu lateral para acessar as funcionalidades do sistema.
+
+        Cadastros → Cadastro de Catequizandos e Usuários  
+        Consultas → Relatórios e Listagens  
+        Rotinas → Registro de Presença
+        """
+    )
+
+# ----------------------------
+# CADASTRO CATEQUIZANDO
+# ----------------------------
+
+elif submenu == "Cadastro de Catequizando":
 
     st.subheader("Cadastro de Catequizando")
 
@@ -96,7 +155,7 @@ if menu == "Cadastrar Catequizando":
 
     comunidade = st.selectbox(
         "Comunidade",
-        ["Avelar", "Granja", "Antonio Joaquim", "Vista Alegre"]
+        ["Avelar", "Granja", "Antonio Joaquim", "Vista Alegre", "Saudade"]
     )
 
     telefone = st.text_input("Telefone")
@@ -126,10 +185,12 @@ if menu == "Cadastrar Catequizando":
         st.success("Catequizando cadastrado!")
 
 # ----------------------------
-# LISTA
+# LISTA CATEQUIZANDOS
 # ----------------------------
 
-elif menu == "Lista de Catequizandos":
+elif submenu == "Lista de Catequizandos":
+
+    st.subheader("Lista de Catequizandos")
 
     cursor.execute("""
     SELECT
@@ -161,10 +222,10 @@ elif menu == "Lista de Catequizandos":
     st.dataframe(df, use_container_width=True)
 
 # ----------------------------
-# PRESENÇA
+# REGISTRO PRESENÇA
 # ----------------------------
 
-elif menu == "Registrar Presença":
+elif submenu == "Registro de Presença":
 
     st.subheader("Registro de Presença")
 
@@ -211,10 +272,10 @@ elif menu == "Registrar Presença":
         st.success("Presença registrada!")
 
 # ----------------------------
-# USUÁRIOS
+# CADASTRO USUÁRIOS
 # ----------------------------
 
-elif menu == "Usuários do Sistema":
+elif submenu == "Cadastro de Usuários":
 
     st.subheader("Cadastro de Usuários")
 
@@ -263,10 +324,10 @@ elif menu == "Usuários do Sistema":
     st.dataframe(df, use_container_width=True)
 
 # ----------------------------
-# RELATÓRIO
+# RELATÓRIO FALTAS
 # ----------------------------
 
-elif menu == "Relatório de Faltas":
+elif submenu == "Relatório de Faltas":
 
     st.subheader("Relatório de Faltas")
 

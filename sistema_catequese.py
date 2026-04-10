@@ -13,33 +13,37 @@ st.set_page_config(
 st.markdown("""
 <style>
 
-/* títulos das seções do menu */
-div[data-testid="stSidebar"] ul li:nth-child(2),
-div[data-testid="stSidebar"] ul li:nth-child(6),
-div[data-testid="stSidebar"] ul li:nth-child(8),
-div[data-testid="stSidebar"] ul li:nth-child(12)
-{
-    background-color: #ececec;
-    font-weight: bold;
-    border-radius: 6px;
+/* ===== TÍTULOS DAS SEÇÕES ===== */
+
+div[data-testid="stSidebar"] li:has(span:contains("CADASTROS")){
+    background-color:#e8f5e9;
+    font-weight:bold;
+    border-radius:6px;
 }
 
-/* cores específicas */
-
-div[data-testid="stSidebar"] ul li:nth-child(2){
-background-color:#e8f5e9;
+div[data-testid="stSidebar"] li:has(span:contains("PRESENÇA")){
+    background-color:#fff3cd;
+    font-weight:bold;
+    border-radius:6px;
 }
 
-div[data-testid="stSidebar"] ul li:nth-child(6){
-background-color:#fff3cd;
+div[data-testid="stSidebar"] li:has(span:contains("RELATÓRIOS")){
+    background-color:#f8d7da;
+    font-weight:bold;
+    border-radius:6px;
 }
 
-div[data-testid="stSidebar"] ul li:nth-child(8){
-background-color:#f8d7da;
+div[data-testid="stSidebar"] li:has(span:contains("ADMINISTRAÇÃO")){
+    background-color:#e2d6f3;
+    font-weight:bold;
+    border-radius:6px;
 }
 
-div[data-testid="stSidebar"] ul li:nth-child(12){
-background-color:#e2d6f3;
+/* deixa os títulos centralizados */
+
+div[data-testid="stSidebar"] li span{
+    display:block;
+    text-align:center;
 }
 
 </style>

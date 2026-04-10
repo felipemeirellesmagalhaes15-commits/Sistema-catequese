@@ -10,57 +10,6 @@ st.set_page_config(
     layout="wide"
 )
 
-st.markdown("""
-<style>
-
-/* estilo geral dos títulos */
-div[data-testid="stSidebar"] ul li:nth-of-type(2) a,
-div[data-testid="stSidebar"] ul li:nth-of-type(6) a,
-div[data-testid="stSidebar"] ul li:nth-of-type(8) a,
-div[data-testid="stSidebar"] ul li:nth-of-type(12) a{
-    font-weight: bold;
-    border-radius: 6px;
-}
-
-/* CADASTROS */
-div[data-testid="stSidebar"] ul li:nth-of-type(2) a{
-    background-color:#e8f5e9;
-}
-
-/* PRESENÇA */
-div[data-testid="stSidebar"] ul li:nth-of-type(6) a{
-    background-color:#fff3cd;
-}
-
-/* RELATÓRIOS */
-div[data-testid="stSidebar"] ul li:nth-of-type(8) a{
-    background-color:#f8d7da;
-}
-
-/* ADMINISTRAÇÃO */
-div[data-testid="stSidebar"] ul li:nth-of-type(12) a{
-    background-color:#e2d6f3;
-}
-
-</style>
-""", unsafe_allow_html=True)
-
-# ----------------------------
-# CORES DOS MENUS
-# ----------------------------
-
-cores_menu = {
-    "Dashboard": "#e3f2fd",
-    "Cadastro Turmas": "#e8f5e9",
-    "Cadastro Catequizando": "#e8f5e9",
-    "Cadastro Usuários": "#e8f5e9",
-    "Registro Presença": "#fff8e1",
-    "Lista Catequizandos": "#ffebee",
-    "Lista Catequistas": "#ffebee",
-    "Relatório Faltas": "#ffebee",
-    "Gestão de Acesso": "#f3e5f5"
-}
-
 # ----------------------------
 # CONEXÃO BANCO
 # ----------------------------
@@ -149,20 +98,20 @@ with st.sidebar:
 
             "📊 Dashboard",
 
-            "--- CADASTROS ---",
+            "🟩 CADASTROS",
             "Cadastro Turmas",
             "Cadastro Catequizando",
             "Cadastro Usuários",
 
-            "--- PRESENÇA ---",
+            "🟨 PRESENÇA",
             "Registro Presença",
 
-            "--- RELATÓRIOS ---",
+            "🟥 RELATÓRIOS",
             "Lista Catequizandos",
             "Lista Catequistas",
             "Relatório Faltas",
 
-            "--- ADMINISTRAÇÃO ---",
+            "🟪 ADMINISTRAÇÃO",
             "Gestão de Acesso"
 
         ],
@@ -187,38 +136,32 @@ with st.sidebar:
             "key"
         ],
 
-        default_index=0
+        default_index=0,
+
+        styles={
+            "container": {"padding": "0!important"},
+            "icon": {"font-size": "18px"},
+            "nav-link": {
+                "font-size": "15px",
+                "text-align": "left",
+                "margin": "3px",
+                "--hover-color": "#f1f1f1",
+            },
+            "nav-link-selected": {
+                "background-color": "#ff4b4b",
+                "font-weight": "bold",
+            },
+        },
     )
 
     if st.button("🚪 Sair"):
         st.session_state["logado"] = False
         st.rerun()
 
-menu = menu.replace("📊 ","")
+menu = menu.replace("📊 ", "")
 
-if "---" in menu:
+if "CADASTROS" in menu or "PRESENÇA" in menu or "RELATÓRIOS" in menu or "ADMINISTRAÇÃO" in menu:
     menu = "Dashboard"
-
-# ----------------------------
-# FUNÇÃO COR FUNDO
-# ----------------------------
-
-def fundo_menu(nome):
-
-    cor = cores_menu.get(nome,"white")
-
-    st.markdown(
-        f"""
-        <style>
-        .stApp {{
-        background-color: {cor};
-        }}
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
-fundo_menu(menu)
 
 # ----------------------------
 # DASHBOARD
@@ -351,31 +294,6 @@ elif menu == "Cadastro Catequizando":
         conn.commit()
 
         st.success("Catequizando cadastrado!")
-
-# ----------------------------
-# CADASTRO USUÁRIOS
-# ----------------------------
-
-elif menu == "Cadastro Usuários":
-
-    st.header("🔐 Cadastro de Usuários")
-
-    nome = st.text_input("Nome")
-    usuario = st.text_input("Login")
-    senha = st.text_input("Senha", type="password")
-
-    perfil = st.selectbox("Perfil", ["admin","catequista"])
-
-    if st.button("Salvar usuário"):
-
-        cursor.execute("""
-        INSERT INTO usuarios (usuario,senha,nome,perfil)
-        VALUES (%s,%s,%s,%s)
-        """,(usuario,senha,nome,perfil))
-
-        conn.commit()
-
-        st.success("Usuário cadastrado!")
 
 # ----------------------------
 # REGISTRO PRESENÇA

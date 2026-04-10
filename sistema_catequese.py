@@ -296,6 +296,32 @@ elif menu == "Cadastro Catequizando":
         st.success("Catequizando cadastrado!")
 
 # ----------------------------
+# CADASTRO USUÁRIOS
+# ----------------------------
+
+elif menu == "Cadastro Usuários":
+
+    st.header("🔐 Cadastro de Usuários")
+
+    nome = st.text_input("Nome")
+    usuario = st.text_input("Login")
+    senha = st.text_input("Senha", type="password")
+
+    perfil = st.selectbox("Perfil", ["admin","catequista"])
+
+    if st.button("Salvar usuário"):
+
+        cursor.execute("""
+        INSERT INTO usuarios (usuario,senha,nome,perfil)
+        VALUES (%s,%s,%s,%s)
+        """,(usuario,senha,nome,perfil))
+
+        conn.commit()
+
+        st.success("Usuário cadastrado!")
+
+
+# ----------------------------
 # REGISTRO PRESENÇA
 # ----------------------------
 
@@ -342,3 +368,178 @@ elif menu == "Registro Presença":
         conn.commit()
 
         st.success("Presença registrada!")
+
+# ----------------------------
+# LISTA CATEQUIZANDOS
+# ----------------------------
+
+elif menu == "Lista Catequizandos":
+
+    st.header("📋 Lista de Catequizandos")
+
+    if st.session_state["perfil"] == "admin":
+
+        cursor.execute("""
+        SELECT id,nome,turma,comunidade,telefone,endereco,bairro,cidade,sacramento
+        FROM catequizandos
+        """)
+
+    else:
+
+        cursor.execute("""
+        SELECT id,nome,turma,comunidade,telefone,endereco,bairro,cidade,sacramento
+        FROM catequizandos
+        WHERE turma = ANY(%s)
+        """,(turmas_permitidas,))
+
+    dados = cursor.fetchall()
+
+    df = pd.DataFrame(
+        dados,
+        columns=[
+            "ID","Nome","Turma","Comunidade",
+            "Telefone","Endereço","Bairro","Cidade","Sacramento"
+        ]
+    )
+
+    st.dataframe(df,use_container_width=True)
+
+# ----------------------------
+# LISTA CATEQUISTAS
+# ----------------------------
+
+elif menu == "Lista Catequistas":
+
+    st.header("👨‍🏫 Lista de Catequistas")
+
+    cursor.execute("""
+    SELECT nome,usuario,perfil
+    FROM usuarios
+    ORDER BY nome
+    """)
+
+    dados = cursor.fetchall()
+
+    df = pd.DataFrame(
+        dados,
+        columns=["Nome","Usuário","Perfil"]
+    )
+
+    st.dataframe(df,use_container_width=True)
+
+# ----------------------------
+# RELATÓRIO FALTAS
+# ----------------------------
+
+elif menu == "Relatório Faltas":
+
+    st.header("⚠ Relatório de Faltas")
+
+    if st.session_state["perfil"] == "admin":
+
+        cursor.execute("""
+        SELECT nome, COUNT(*)
+        FROM presenca
+        WHERE presenca='F'
+        GROUP BY nome
+        ORDER BY COUNT(*) DESC
+        """)
+
+    else:
+
+        cursor.execute("""
+        SELECT nome, COUNT(*)
+        FROM presenca
+        WHERE presenca='F'
+        AND turma = ANY(%s)
+        GROUP BY nome
+        ORDER BY COUNT(*) DESC
+        """,(turmas_permitidas,))
+
+    dados = cursor.fetchall()
+
+    df = pd.DataFrame(
+        dados,
+        columns=["Catequizando","Total de Faltas"]
+    )
+
+    st.dataframe(df,use_container_width=True)
+
+# ----------------------------
+# GESTÃO DE ACESSO
+# ----------------------------
+
+elif menu == "Gestão de Acesso":
+
+    st.header("🔑 Gestão de Acesso")
+
+    cursor.execute("SELECT usuario FROM usuarios ORDER BY usuario")
+    usuarios = [u[0] for u in cursor.fetchall()]
+
+    usuario_sel = st.selectbox("Usuário",usuarios)
+
+    cursor.execute("""
+    SELECT aba,comunidade,turma
+    FROM permissoes_usuario
+    WHERE usuario=%s
+    """,(usuario_sel,))
+
+    permissoes = cursor.fetchall()
+
+    abas_atuais = list(set([p[0] for p in permissoes if p[0] != None]))
+    comunidades_atuais = list(set([p[1] for p in permissoes if p[1] != None]))
+    turmas_atuais = list(set([p[2] for p in permissoes if p[2] != None]))
+
+    st.subheader("Permissões atuais")
+
+    if permissoes:
+        df_perm = pd.DataFrame(permissoes,columns=["Aba","Comunidade","Turma"])
+        st.dataframe(df_perm,use_container_width=True)
+    else:
+        st.info("Este usuário ainda não possui permissões cadastradas.")
+
+    st.divider()
+
+    st.subheader("Editar permissões")
+
+    abas = [
+        "Dashboard",
+        "Cadastro Turmas",
+        "Cadastro Catequizando",
+        "Cadastro Usuários",
+        "Registro Presença",
+        "Lista Catequizandos",
+        "Lista Catequistas",
+        "Relatório Faltas"
+    ]
+
+    abas_sel = st.multiselect("Abas Permitidas",abas,default=abas_atuais)
+
+    comunidades = [
+        "Avelar","Granja","Antonio Joaquim","Vista Alegre","Saudade"
+    ]
+
+    comunidades_sel = st.multiselect("Comunidades Permitidas",comunidades,default=comunidades_atuais)
+
+    cursor.execute("SELECT nome FROM turmas ORDER BY nome")
+    turmas = [t[0] for t in cursor.fetchall()]
+
+    turmas_sel = st.multiselect("Turmas Permitidas",turmas,default=turmas_atuais)
+
+    if st.button("💾 Salvar Permissões"):
+
+        cursor.execute("DELETE FROM permissoes_usuario WHERE usuario=%s",(usuario_sel,))
+
+        for aba in abas_sel:
+            for comunidade in comunidades_sel:
+                for turma in turmas_sel:
+
+                    cursor.execute("""
+                    INSERT INTO permissoes_usuario
+                    (usuario,aba,comunidade,turma)
+                    VALUES (%s,%s,%s,%s)
+                    """,(usuario_sel,aba,comunidade,turma))
+
+        conn.commit()
+
+        st.success("Permissões atualizadas com sucesso!")

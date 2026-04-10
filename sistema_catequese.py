@@ -43,7 +43,7 @@ def tela_login():
     if st.button("Entrar"):
 
         cursor.execute(
-            "SELECT usuario FROM usuarios WHERE usuario=%s AND senha=%s",
+            "SELECT usuario,perfil FROM usuarios WHERE usuario=%s AND senha=%s",
             (usuario, senha)
         )
 
@@ -53,6 +53,8 @@ def tela_login():
 
             st.session_state["logado"] = True
             st.session_state["usuario"] = usuario
+            st.session_state["perfil"] = resultado[1]
+
             st.rerun()
 
         else:
@@ -79,21 +81,24 @@ with st.sidebar:
         "Menu",
         [
             "Dashboard",
+            "Cadastro Turmas",
             "Cadastro Catequizando",
             "Cadastro Usuários",
             "Lista Catequizandos",
+            "Lista Catequistas",
             "Registro Presença",
             "Relatório Faltas"
         ],
         icons=[
             "bar-chart",
+            "house",
             "person-plus",
             "people",
             "table",
+            "person-badge",
             "check-square",
             "exclamation-triangle"
         ],
-        menu_icon="cast",
         default_index=0,
     )
 
@@ -112,7 +117,7 @@ if menu == "Dashboard":
     cursor.execute("SELECT COUNT(*) FROM catequizandos")
     total_catequizandos = cursor.fetchone()[0]
 
-    cursor.execute("SELECT COUNT(DISTINCT turma) FROM catequizandos")
+    cursor.execute("SELECT COUNT(*) FROM turmas")
     total_turmas = cursor.fetchone()[0]
 
     cursor.execute("SELECT COUNT(*) FROM presenca WHERE presenca='P'")
@@ -128,9 +133,38 @@ if menu == "Dashboard":
     col3.metric("✅ Presenças", total_presencas)
     col4.metric("❌ Faltas", total_faltas)
 
-    st.divider()
-
     st.info("Use o menu lateral para acessar as funcionalidades.")
+
+# ----------------------------
+# CADASTRO TURMAS
+# ----------------------------
+
+elif menu == "Cadastro Turmas":
+
+    st.header("🏫 Cadastro de Turmas")
+
+    nome = st.text_input("Nome da Turma")
+
+    comunidade = st.selectbox(
+        "Comunidade",
+        ["Avelar", "Granja", "Antonio Joaquim", "Vista Alegre", "Saudade"]
+    )
+
+    catequista = st.text_input("Catequista responsável")
+
+    if st.button("Salvar Turma"):
+
+        cursor.execute(
+            """
+            INSERT INTO turmas (nome,comunidade,catequista)
+            VALUES (%s,%s,%s)
+            """,
+            (nome, comunidade, catequista)
+        )
+
+        conn.commit()
+
+        st.success("Turma cadastrada!")
 
 # ----------------------------
 # CADASTRO CATEQUIZANDO
@@ -140,11 +174,14 @@ elif menu == "Cadastro Catequizando":
 
     st.header("👤 Cadastro de Catequizando")
 
+    cursor.execute("SELECT nome FROM turmas")
+    turmas = [t[0] for t in cursor.fetchall()]
+
     col1, col2 = st.columns(2)
 
     with col1:
         nome = st.text_input("Nome")
-        turma = st.text_input("Turma")
+        turma = st.selectbox("Turma", turmas)
         telefone = st.text_input("Telefone")
 
     with col2:
@@ -159,8 +196,6 @@ elif menu == "Cadastro Catequizando":
         )
 
         data_cadastro = st.date_input("Data do Cadastro", date.today())
-
-    st.write("Data selecionada:", data_cadastro.strftime("%d/%m/%Y"))
 
     if st.button("💾 Salvar"):
 
@@ -178,7 +213,46 @@ elif menu == "Cadastro Catequizando":
         st.success("Catequizando cadastrado!")
 
 # ----------------------------
-# LISTA
+# CADASTRO USUÁRIOS
+# ----------------------------
+
+elif menu == "Cadastro Usuários":
+
+    st.header("🔐 Cadastro de Usuários")
+
+    nome = st.text_input("Nome")
+    usuario = st.text_input("Login")
+    senha = st.text_input("Senha", type="password")
+
+    perfil = st.selectbox("Perfil", ["admin", "catequista"])
+
+    cursor.execute("SELECT nome FROM turmas")
+    turmas = [t[0] for t in cursor.fetchall()]
+
+    turma_permitida = st.selectbox("Turma Permitida", turmas)
+
+    comunidade = st.selectbox(
+        "Comunidade Permitida",
+        ["Avelar", "Granja", "Antonio Joaquim", "Vista Alegre", "Saudade"]
+    )
+
+    if st.button("Salvar usuário"):
+
+        cursor.execute(
+            """
+            INSERT INTO usuarios
+            (usuario,senha,nome,perfil,turma_permitida,comunidade_permitida)
+            VALUES (%s,%s,%s,%s,%s,%s)
+            """,
+            (usuario, senha, nome, perfil, turma_permitida, comunidade)
+        )
+
+        conn.commit()
+
+        st.success("Usuário cadastrado!")
+
+# ----------------------------
+# LISTA CATEQUIZANDOS
 # ----------------------------
 
 elif menu == "Lista Catequizandos":
@@ -215,6 +289,34 @@ elif menu == "Lista Catequizandos":
     st.dataframe(df, use_container_width=True)
 
 # ----------------------------
+# LISTA CATEQUISTAS
+# ----------------------------
+
+elif menu == "Lista Catequistas":
+
+    st.header("👨‍🏫 Lista de Catequistas")
+
+    cursor.execute("""
+    SELECT nome,usuario,perfil,comunidade_permitida,turma_permitida
+    FROM usuarios
+    """)
+
+    dados = cursor.fetchall()
+
+    df = pd.DataFrame(
+        dados,
+        columns=[
+            "Nome",
+            "Usuário",
+            "Perfil",
+            "Comunidade",
+            "Turma"
+        ]
+    )
+
+    st.dataframe(df, use_container_width=True)
+
+# ----------------------------
 # REGISTRO PRESENÇA
 # ----------------------------
 
@@ -224,9 +326,7 @@ elif menu == "Registro Presença":
 
     data_encontro = st.date_input("Data do encontro", date.today())
 
-    st.write("Data:", data_encontro.strftime("%d/%m/%Y"))
-
-    cursor.execute("SELECT DISTINCT turma FROM catequizandos")
+    cursor.execute("SELECT nome FROM turmas")
     turmas = [t[0] for t in cursor.fetchall()]
 
     turma = st.selectbox("Turma", turmas)
@@ -250,53 +350,18 @@ elif menu == "Registro Presença":
 
         for nome, status in presencas:
 
-            try:
-
-                cursor.execute(
-                    """
-                    INSERT INTO presenca
-                    (data,nome,turma,presenca)
-                    VALUES (%s,%s,%s,%s)
-                    """,
-                    (data_encontro, nome, turma, status)
-                )
-
-            except psycopg2.errors.UniqueViolation:
-
-                conn.rollback()
-                st.warning(f"{nome} já possui presença registrada.")
+            cursor.execute(
+                """
+                INSERT INTO presenca
+                (data,nome,turma,presenca)
+                VALUES (%s,%s,%s,%s)
+                """,
+                (data_encontro, nome, turma, status)
+            )
 
         conn.commit()
 
         st.success("Presença registrada!")
-
-# ----------------------------
-# CADASTRO USUÁRIOS
-# ----------------------------
-
-elif menu == "Cadastro Usuários":
-
-    st.header("🔐 Cadastro de Usuários")
-
-    nome = st.text_input("Nome")
-    usuario = st.text_input("Login")
-    senha = st.text_input("Senha", type="password")
-
-    perfil = st.selectbox("Perfil", ["admin", "catequista"])
-
-    if st.button("Salvar usuário"):
-
-        cursor.execute(
-            """
-            INSERT INTO usuarios (usuario, senha, nome, perfil)
-            VALUES (%s,%s,%s,%s)
-            """,
-            (usuario, senha, nome, perfil)
-        )
-
-        conn.commit()
-
-        st.success("Usuário cadastrado!")
 
 # ----------------------------
 # RELATÓRIO FALTAS

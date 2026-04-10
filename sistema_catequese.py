@@ -230,14 +230,29 @@ elif menu == "Cadastro Catequizando":
 
     st.header("👤 Cadastro de Catequizando")
 
-    cursor.execute("SELECT nome FROM turmas")
-    turmas = [t[0] for t in cursor.fetchall()]
+    cursor.execute("""
+    SELECT id, nome, comunidade, catequista
+    FROM turmas
+    ORDER BY nome
+    """)
+
+    dados_turmas = cursor.fetchall()
+
+    turmas_dict = {
+        f"{t[1]} | Comunidade {t[2]} | Catequista {t[3]}": t[1]
+        for t in dados_turmas
+    }
 
     col1, col2 = st.columns(2)
 
     with col1:
         nome = st.text_input("Nome")
-        turma = st.selectbox("Turma", turmas)
+        turma_label = st.selectbox(
+            "Turma",
+            list(turmas_dict.keys())
+        )
+
+        turma = turmas_dict[turma_label]
         telefone = st.text_input("Telefone")
 
         endereco = st.text_input("Endereço")

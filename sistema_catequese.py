@@ -10,6 +10,41 @@ st.set_page_config(
     layout="wide"
 )
 
+st.markdown("""
+<style>
+
+/* títulos das seções do menu */
+div[data-testid="stSidebar"] ul li:nth-child(2),
+div[data-testid="stSidebar"] ul li:nth-child(6),
+div[data-testid="stSidebar"] ul li:nth-child(8),
+div[data-testid="stSidebar"] ul li:nth-child(12)
+{
+    background-color: #ececec;
+    font-weight: bold;
+    border-radius: 6px;
+}
+
+/* cores específicas */
+
+div[data-testid="stSidebar"] ul li:nth-child(2){
+background-color:#e8f5e9;
+}
+
+div[data-testid="stSidebar"] ul li:nth-child(6){
+background-color:#fff3cd;
+}
+
+div[data-testid="stSidebar"] ul li:nth-child(8){
+background-color:#f8d7da;
+}
+
+div[data-testid="stSidebar"] ul li:nth-child(12){
+background-color:#e2d6f3;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
 # ----------------------------
 # CORES DOS MENUS
 # ----------------------------

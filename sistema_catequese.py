@@ -69,6 +69,23 @@ if not st.session_state["logado"]:
     st.stop()
 
 # ----------------------------
+# PERMISSÕES
+# ----------------------------
+
+cursor.execute(
+"""
+SELECT aba,comunidade,turma,catequista
+FROM permissoes_usuario
+WHERE usuario=%s
+""",
+(st.session_state["usuario"],)
+)
+
+permissoes = cursor.fetchall()
+
+abas_permitidas = list(set([p[0] for p in permissoes]))
+
+# ----------------------------
 # SIDEBAR
 # ----------------------------
 
@@ -77,18 +94,24 @@ with st.sidebar:
     st.markdown("### 📖 Sistema Catequese")
     st.write(f"Usuário: **{st.session_state['usuario']}**")
 
+    abas = [
+        "Dashboard",
+        "Cadastro Turmas",
+        "Cadastro Catequizando",
+        "Cadastro Usuários",
+        "Lista Catequizandos",
+        "Lista Catequistas",
+        "Registro Presença",
+        "Relatório Faltas",
+        "Gestão de Acesso"
+    ]
+
+    if st.session_state["perfil"] != "admin":
+        abas = [a for a in abas if a in abas_permitidas]
+
     menu = option_menu(
         "Menu",
-        [
-            "Dashboard",
-            "Cadastro Turmas",
-            "Cadastro Catequizando",
-            "Cadastro Usuários",
-            "Lista Catequizandos",
-            "Lista Catequistas",
-            "Registro Presença",
-            "Relatório Faltas"
-        ],
+        abas,
         icons=[
             "bar-chart",
             "house",
@@ -97,7 +120,8 @@ with st.sidebar:
             "table",
             "person-badge",
             "check-square",
-            "exclamation-triangle"
+            "exclamation-triangle",
+            "key"
         ],
         default_index=0,
     )
@@ -120,20 +144,10 @@ if menu == "Dashboard":
     cursor.execute("SELECT COUNT(*) FROM turmas")
     total_turmas = cursor.fetchone()[0]
 
-    cursor.execute("SELECT COUNT(*) FROM presenca WHERE presenca='P'")
-    total_presencas = cursor.fetchone()[0]
+    col1, col2 = st.columns(2)
 
-    cursor.execute("SELECT COUNT(*) FROM presenca WHERE presenca='F'")
-    total_faltas = cursor.fetchone()[0]
-
-    col1, col2, col3, col4 = st.columns(4)
-
-    col1.metric("👥 Catequizandos", total_catequizandos)
-    col2.metric("🏫 Turmas", total_turmas)
-    col3.metric("✅ Presenças", total_presencas)
-    col4.metric("❌ Faltas", total_faltas)
-
-    st.info("Use o menu lateral para acessar as funcionalidades.")
+    col1.metric("Catequizandos", total_catequizandos)
+    col2.metric("Turmas", total_turmas)
 
 # ----------------------------
 # CADASTRO TURMAS
@@ -141,18 +155,16 @@ if menu == "Dashboard":
 
 elif menu == "Cadastro Turmas":
 
-    st.header("🏫 Cadastro de Turmas")
-
-    st.subheader("Nova Turma")
+    st.header("Cadastro de Turmas")
 
     nome = st.text_input("Nome da Turma")
 
     comunidade = st.selectbox(
         "Comunidade",
-        ["Avelar", "Granja", "Antonio Joaquim", "Vista Alegre", "Saudade"]
+        ["Avelar","Granja","Antonio Joaquim","Vista Alegre","Saudade"]
     )
 
-    catequista = st.text_input("Catequista responsável")
+    catequista = st.text_input("Catequista")
 
     if st.button("Salvar Turma"):
 
@@ -161,22 +173,19 @@ elif menu == "Cadastro Turmas":
             INSERT INTO turmas (nome,comunidade,catequista)
             VALUES (%s,%s,%s)
             """,
-            (nome, comunidade, catequista)
+            (nome,comunidade,catequista)
         )
 
         conn.commit()
 
         st.success("Turma cadastrada!")
 
-    st.divider()
-
-    st.subheader("Turmas cadastradas")
-
-    cursor.execute("""
+    cursor.execute(
+    """
     SELECT id,nome,comunidade,catequista
     FROM turmas
-    ORDER BY nome
-    """)
+    """
+    )
 
     dados = cursor.fetchall()
 
@@ -185,42 +194,7 @@ elif menu == "Cadastro Turmas":
         columns=["ID","Turma","Comunidade","Catequista"]
     )
 
-    st.dataframe(df, use_container_width=True)
-
-    st.subheader("Editar Turma")
-
-    turma_id = st.selectbox(
-        "Selecione a Turma",
-        df["ID"]
-    )
-
-    if turma_id:
-
-        cursor.execute(
-            "SELECT nome,comunidade,catequista FROM turmas WHERE id=%s",
-            (int(turma_id),)
-        )
-
-        dados_turma = cursor.fetchone()
-
-        nome_edit = st.text_input("Nome", dados_turma[0])
-        comunidade_edit = st.text_input("Comunidade", dados_turma[1])
-        catequista_edit = st.text_input("Catequista", dados_turma[2])
-
-        if st.button("Atualizar Turma"):
-
-            cursor.execute(
-                """
-                UPDATE turmas
-                SET nome=%s, comunidade=%s, catequista=%s
-                WHERE id=%s
-                """,
-                (nome_edit, comunidade_edit, catequista_edit, turma_id)
-            )
-
-            conn.commit()
-
-            st.success("Turma atualizada!")
+    st.dataframe(df,use_container_width=True)
 
 # ----------------------------
 # CADASTRO CATEQUIZANDO
@@ -228,13 +202,15 @@ elif menu == "Cadastro Turmas":
 
 elif menu == "Cadastro Catequizando":
 
-    st.header("👤 Cadastro de Catequizando")
+    st.header("Cadastro Catequizando")
 
-    cursor.execute("""
-    SELECT id, nome, comunidade, catequista
+    cursor.execute(
+    """
+    SELECT id,nome,comunidade,catequista
     FROM turmas
     ORDER BY nome
-    """)
+    """
+    )
 
     dados_turmas = cursor.fetchall()
 
@@ -243,16 +219,19 @@ elif menu == "Cadastro Catequizando":
         for t in dados_turmas
     }
 
-    col1, col2 = st.columns(2)
+    col1,col2 = st.columns(2)
 
     with col1:
+
         nome = st.text_input("Nome")
+
         turma_label = st.selectbox(
             "Turma",
             list(turmas_dict.keys())
         )
 
         turma = turmas_dict[turma_label]
+
         telefone = st.text_input("Telefone")
 
         endereco = st.text_input("Endereço")
@@ -260,27 +239,28 @@ elif menu == "Cadastro Catequizando":
         cidade = st.text_input("Cidade")
 
     with col2:
+
         comunidade = st.selectbox(
             "Comunidade",
-            ["Avelar", "Granja", "Antonio Joaquim", "Vista Alegre", "Saudade"]
+            ["Avelar","Granja","Antonio Joaquim","Vista Alegre","Saudade"]
         )
 
         sacramento = st.selectbox(
             "Sacramento",
-            ["Primeira Eucaristia", "Crisma"]
+            ["Primeira Eucaristia","Crisma"]
         )
 
-        data_cadastro = st.date_input("Data do Cadastro", date.today())
+        data_cadastro = st.date_input("Data Cadastro",date.today())
 
-    if st.button("💾 Salvar"):
+    if st.button("Salvar"):
 
         cursor.execute(
-            """
-            INSERT INTO catequizandos
-            (nome,turma,comunidade,telefone,endereco,bairro,cidade,sacramento,data_cadastro)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
-            """,
-            (nome, turma, comunidade, telefone, endereco, bairro, cidade, sacramento, data_cadastro)
+        """
+        INSERT INTO catequizandos
+        (nome,turma,comunidade,telefone,endereco,bairro,cidade,sacramento,data_cadastro)
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """,
+        (nome,turma,comunidade,telefone,endereco,bairro,cidade,sacramento,data_cadastro)
         )
 
         conn.commit()
@@ -288,86 +268,32 @@ elif menu == "Cadastro Catequizando":
         st.success("Catequizando cadastrado!")
 
 # ----------------------------
-# CADASTRO USUÁRIOS
-# ----------------------------
-
-elif menu == "Cadastro Usuários":
-
-    st.header("🔐 Cadastro de Usuários")
-
-    nome = st.text_input("Nome")
-    usuario = st.text_input("Login")
-    senha = st.text_input("Senha", type="password")
-
-    perfil = st.selectbox("Perfil", ["admin", "catequista"])
-
-    cursor.execute("SELECT nome FROM turmas")
-    turmas = [t[0] for t in cursor.fetchall()]
-
-    turma_permitida = st.selectbox("Turma Permitida", turmas)
-
-    comunidade = st.selectbox(
-        "Comunidade Permitida",
-        ["Avelar", "Granja", "Antonio Joaquim", "Vista Alegre", "Saudade"]
-    )
-
-    if st.button("Salvar usuário"):
-
-        cursor.execute(
-            """
-            INSERT INTO usuarios
-            (usuario,senha,nome,perfil,turma_permitida,comunidade_permitida)
-            VALUES (%s,%s,%s,%s,%s,%s)
-            """,
-            (usuario, senha, nome, perfil, turma_permitida, comunidade)
-        )
-
-        conn.commit()
-
-        st.success("Usuário cadastrado!")
-
-# ----------------------------
 # LISTA CATEQUIZANDOS
 # ----------------------------
 
 elif menu == "Lista Catequizandos":
 
-    st.header("📋 Lista de Catequizandos")
+    st.header("Lista de Catequizandos")
 
-    cursor.execute("""
+    cursor.execute(
+    """
     SELECT
-    id,
-    nome,
-    turma,
-    comunidade,
-    telefone,
-    endereco,
-    bairro,
-    cidade,
-    sacramento,
-    TO_CHAR(data_cadastro,'DD/MM/YYYY')
+    id,nome,turma,comunidade,telefone,endereco,bairro,cidade,sacramento
     FROM catequizandos
-    """)
+    """
+    )
 
     dados = cursor.fetchall()
 
     df = pd.DataFrame(
         dados,
         columns=[
-            "ID",
-            "Nome",
-            "Turma",
-            "Comunidade",
-            "Telefone",
-            "Endereço",
-            "Bairro",
-            "Cidade",
-            "Sacramento",
-            "Data Cadastro"
+            "ID","Nome","Turma","Comunidade",
+            "Telefone","Endereço","Bairro","Cidade","Sacramento"
         ]
     )
 
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(df,use_container_width=True)
 
 # ----------------------------
 # LISTA CATEQUISTAS
@@ -375,27 +301,23 @@ elif menu == "Lista Catequizandos":
 
 elif menu == "Lista Catequistas":
 
-    st.header("👨‍🏫 Lista de Catequistas")
+    st.header("Lista de Catequistas")
 
-    cursor.execute("""
-    SELECT nome,usuario,perfil,comunidade_permitida,turma_permitida
+    cursor.execute(
+    """
+    SELECT nome,usuario,perfil
     FROM usuarios
-    """)
+    """
+    )
 
     dados = cursor.fetchall()
 
     df = pd.DataFrame(
         dados,
-        columns=[
-            "Nome",
-            "Usuário",
-            "Perfil",
-            "Comunidade",
-            "Turma"
-        ]
+        columns=["Nome","Usuário","Perfil"]
     )
 
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(df,use_container_width=True)
 
 # ----------------------------
 # REGISTRO PRESENÇA
@@ -403,14 +325,15 @@ elif menu == "Lista Catequistas":
 
 elif menu == "Registro Presença":
 
-    st.header("✅ Registro de Presença")
+    st.header("Registro de Presença")
 
-    data_encontro = st.date_input("Data do encontro", date.today())
+    data_encontro = st.date_input("Data",date.today())
 
     cursor.execute("SELECT nome FROM turmas")
+
     turmas = [t[0] for t in cursor.fetchall()]
 
-    turma = st.selectbox("Turma", turmas)
+    turma = st.selectbox("Turma",turmas)
 
     cursor.execute(
         "SELECT nome FROM catequizandos WHERE turma=%s",
@@ -419,25 +342,25 @@ elif menu == "Registro Presença":
 
     alunos = cursor.fetchall()
 
-    presencas = []
+    presencas=[]
 
     for aluno in alunos:
 
         presente = st.checkbox(aluno[0])
 
-        presencas.append((aluno[0], "P" if presente else "F"))
+        presencas.append((aluno[0],"P" if presente else "F"))
 
     if st.button("Registrar"):
 
-        for nome, status in presencas:
+        for nome,status in presencas:
 
             cursor.execute(
-                """
-                INSERT INTO presenca
-                (data,nome,turma,presenca)
-                VALUES (%s,%s,%s,%s)
-                """,
-                (data_encontro, nome, turma, status)
+            """
+            INSERT INTO presenca
+            (data,nome,turma,presenca)
+            VALUES (%s,%s,%s,%s)
+            """,
+            (data_encontro,nome,turma,status)
             )
 
         conn.commit()
@@ -450,19 +373,80 @@ elif menu == "Registro Presença":
 
 elif menu == "Relatório Faltas":
 
-    st.header("⚠ Relatório de Faltas")
+    st.header("Relatório de Faltas")
 
     cursor.execute(
-        """
-        SELECT nome, COUNT(*)
-        FROM presenca
-        WHERE presenca='F'
-        GROUP BY nome
-        """
+    """
+    SELECT nome,COUNT(*)
+    FROM presenca
+    WHERE presenca='F'
+    GROUP BY nome
+    """
     )
 
     dados = cursor.fetchall()
 
-    df = pd.DataFrame(dados, columns=["Nome", "Faltas"])
+    df = pd.DataFrame(dados,columns=["Nome","Faltas"])
 
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(df,use_container_width=True)
+
+# ----------------------------
+# GESTÃO DE ACESSO
+# ----------------------------
+
+elif menu == "Gestão de Acesso":
+
+    st.header("Gestão de Acesso")
+
+    cursor.execute("SELECT usuario FROM usuarios")
+    usuarios = [u[0] for u in cursor.fetchall()]
+
+    usuario_sel = st.selectbox("Usuário",usuarios)
+
+    abas = [
+        "Dashboard",
+        "Cadastro Turmas",
+        "Cadastro Catequizando",
+        "Cadastro Usuários",
+        "Lista Catequizandos",
+        "Lista Catequistas",
+        "Registro Presença",
+        "Relatório Faltas"
+    ]
+
+    abas_sel = st.multiselect("Abas Permitidas",abas)
+
+    comunidades = [
+        "Avelar","Granja","Antonio Joaquim","Vista Alegre","Saudade"
+    ]
+
+    comunidades_sel = st.multiselect("Comunidades",comunidades)
+
+    cursor.execute("SELECT nome FROM turmas")
+    turmas = [t[0] for t in cursor.fetchall()]
+
+    turmas_sel = st.multiselect("Turmas",turmas)
+
+    if st.button("Salvar Permissões"):
+
+        cursor.execute(
+        "DELETE FROM permissoes_usuario WHERE usuario=%s",
+        (usuario_sel,)
+        )
+
+        for aba in abas_sel:
+            for com in comunidades_sel:
+                for turma in turmas_sel:
+
+                    cursor.execute(
+                    """
+                    INSERT INTO permissoes_usuario
+                    (usuario,aba,comunidade,turma)
+                    VALUES (%s,%s,%s,%s)
+                    """,
+                    (usuario_sel,aba,com,turma)
+                    )
+
+        conn.commit()
+
+        st.success("Permissões salvas!")

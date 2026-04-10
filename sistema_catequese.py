@@ -87,50 +87,84 @@ turmas_permitidas = list(set([p[2] for p in permissoes if p[2] != None]))
 # MENU LATERAL
 # ----------------------------
 
+# ----------------------------
+# MENU LATERAL ORGANIZADO
+# ----------------------------
+
 with st.sidebar:
 
     st.markdown("### 📖 Sistema Catequese")
     st.write(f"Usuário: **{st.session_state['usuario']}**")
 
-    menu = option_menu(
-        "Menu",
-        [
-            "Dashboard",
+    st.divider()
 
-            "Cadastro Turmas",
-            "Cadastro Catequizando",
-            "Cadastro Usuários",
+    st.markdown("### 📊 Painel")
 
-            "Registro Presença",
-
-            "Lista Catequizandos",
-            "Lista Catequistas",
-            "Relatório Faltas",
-
-            "Gestão de Acesso"
-        ],
-        icons=[
-            "bar-chart",
-
-            "house",
-            "person-plus",
-            "people",
-
-            "check-square",
-
-            "table",
-            "person-badge",
-            "exclamation-triangle",
-
-            "key"
-        ],
+    menu1 = option_menu(
+        None,
+        ["Dashboard"],
+        icons=["bar-chart"],
         default_index=0
     )
+
+    st.markdown("### 📚 Cadastros")
+
+    menu2 = option_menu(
+        None,
+        [
+            "Cadastro Turmas",
+            "Cadastro Catequizando",
+            "Cadastro Usuários"
+        ],
+        icons=[
+            "house",
+            "person-plus",
+            "people"
+        ]
+    )
+
+    st.markdown("### 📋 Presença")
+
+    menu3 = option_menu(
+        None,
+        ["Registro Presença"],
+        icons=["check-square"]
+    )
+
+    st.markdown("### 📈 Relatórios")
+
+    menu4 = option_menu(
+        None,
+        [
+            "Lista Catequizandos",
+            "Lista Catequistas",
+            "Relatório Faltas"
+        ],
+        icons=[
+            "table",
+            "person-badge",
+            "exclamation-triangle"
+        ]
+    )
+
+    if st.session_state["perfil"] == "admin":
+
+        st.markdown("### ⚙ Administração")
+
+        menu5 = option_menu(
+            None,
+            ["Gestão de Acesso"],
+            icons=["key"]
+        )
 
     if st.button("🚪 Sair"):
         st.session_state["logado"] = False
         st.rerun()
 
+# Define qual menu foi clicado
+menu = menu1 or menu2 or menu3 or menu4
+if st.session_state["perfil"] == "admin":
+    menu = menu or menu5
 # ----------------------------
 # DASHBOARD
 # ----------------------------

@@ -13,37 +13,33 @@ st.set_page_config(
 st.markdown("""
 <style>
 
-/* ===== TÍTULOS DAS SEÇÕES ===== */
+/* estilo geral dos títulos */
+div[data-testid="stSidebar"] ul li:nth-of-type(2) a,
+div[data-testid="stSidebar"] ul li:nth-of-type(6) a,
+div[data-testid="stSidebar"] ul li:nth-of-type(8) a,
+div[data-testid="stSidebar"] ul li:nth-of-type(12) a{
+    font-weight: bold;
+    border-radius: 6px;
+}
 
-div[data-testid="stSidebar"] li:has(span:contains("CADASTROS")){
+/* CADASTROS */
+div[data-testid="stSidebar"] ul li:nth-of-type(2) a{
     background-color:#e8f5e9;
-    font-weight:bold;
-    border-radius:6px;
 }
 
-div[data-testid="stSidebar"] li:has(span:contains("PRESENÇA")){
+/* PRESENÇA */
+div[data-testid="stSidebar"] ul li:nth-of-type(6) a{
     background-color:#fff3cd;
-    font-weight:bold;
-    border-radius:6px;
 }
 
-div[data-testid="stSidebar"] li:has(span:contains("RELATÓRIOS")){
+/* RELATÓRIOS */
+div[data-testid="stSidebar"] ul li:nth-of-type(8) a{
     background-color:#f8d7da;
-    font-weight:bold;
-    border-radius:6px;
 }
 
-div[data-testid="stSidebar"] li:has(span:contains("ADMINISTRAÇÃO")){
+/* ADMINISTRAÇÃO */
+div[data-testid="stSidebar"] ul li:nth-of-type(12) a{
     background-color:#e2d6f3;
-    font-weight:bold;
-    border-radius:6px;
-}
-
-/* deixa os títulos centralizados */
-
-div[data-testid="stSidebar"] li span{
-    display:block;
-    text-align:center;
 }
 
 </style>

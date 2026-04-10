@@ -92,76 +92,59 @@ with st.sidebar:
     st.markdown("### 📖 Sistema Catequese")
     st.write(f"Usuário: **{st.session_state['usuario']}**")
 
-    menu = option_menu(
-        "Menu",
-        [
+    if st.button("📊 Dashboard"):
+        st.session_state["menu"] = "Dashboard"
 
-            "📊 Dashboard",
+    # CADASTROS
+    with st.expander("🟩 CADASTROS"):
 
-            "🟩 CADASTROS",
-            "Cadastro Turmas",
-            "Cadastro Catequizando",
-            "Cadastro Usuários",
+        if st.button("Cadastro Turmas"):
+            st.session_state["menu"] = "Cadastro Turmas"
 
-            "🟨 PRESENÇA",
-            "Registro Presença",
+        if st.button("Cadastro Catequizando"):
+            st.session_state["menu"] = "Cadastro Catequizando"
 
-            "🟥 RELATÓRIOS",
-            "Lista Catequizandos",
-            "Lista Catequistas",
-            "Relatório Faltas",
+        if st.button("Cadastro Usuários"):
+            st.session_state["menu"] = "Cadastro Usuários"
 
-            "🟪 ADMINISTRAÇÃO",
-            "Gestão de Acesso"
+    # PRESENÇA
+    with st.expander("🟨 PRESENÇA"):
 
-        ],
+        if st.button("Registro Presença"):
+            st.session_state["menu"] = "Registro Presença"
 
-        icons=[
-            "bar-chart",
+    # RELATÓRIOS
+    with st.expander("🟥 RELATÓRIOS"):
 
-            None,
-            "house",
-            "person-plus",
-            "people",
+        if st.button("Lista Catequizandos"):
+            st.session_state["menu"] = "Lista Catequizandos"
 
-            None,
-            "check-square",
+        if st.button("Lista Catequistas"):
+            st.session_state["menu"] = "Lista Catequistas"
 
-            None,
-            "table",
-            "person-badge",
-            "exclamation-triangle",
+        if st.button("Relatório Faltas"):
+            st.session_state["menu"] = "Relatório Faltas"
 
-            None,
-            "key"
-        ],
+    # ADMIN
+    with st.expander("🟪 ADMINISTRAÇÃO"):
 
-        default_index=0,
+        if st.button("Gestão de Acesso"):
+            st.session_state["menu"] = "Gestão de Acesso"
 
-        styles={
-            "container": {"padding": "0!important"},
-            "icon": {"font-size": "18px"},
-            "nav-link": {
-                "font-size": "15px",
-                "text-align": "left",
-                "margin": "3px",
-                "--hover-color": "#f1f1f1",
-            },
-            "nav-link-selected": {
-                "background-color": "#ff4b4b",
-                "font-weight": "bold",
-            },
-        },
-    )
+    st.divider()
 
     if st.button("🚪 Sair"):
         st.session_state["logado"] = False
         st.rerun()
 
-menu = menu.replace("📊 ", "")
+# ----------------------------
+# CONTROLE DO MENU
+# ----------------------------
 
-if "CADASTROS" in menu or "PRESENÇA" in menu or "RELATÓRIOS" in menu or "ADMINISTRAÇÃO" in menu:
-    menu = "Dashboard"
+if "menu" not in st.session_state:
+    st.session_state["menu"] = "Dashboard"
+
+menu = st.session_state["menu"]
 
 # ----------------------------
 # DASHBOARD

@@ -261,6 +261,34 @@ elif menu == "Cadastro Catequizando":
 
         st.success("Catequizando cadastrado!")
 
+#-----------------------------
+#CADASTRO DE USUARIOS
+#-----------------------------
+
+elif menu == "Cadastro Usuários":
+
+    st.header("🔐 Cadastro de Usuários")
+
+    nome = st.text_input("Nome")
+    usuario = st.text_input("Login")
+    senha = st.text_input("Senha", type="password")
+
+    perfil = st.selectbox("Perfil", ["admin", "catequista"])
+
+    if st.button("Salvar usuário"):
+
+        cursor.execute(
+            """
+            INSERT INTO usuarios (usuario, senha, nome, perfil)
+            VALUES (%s,%s,%s,%s)
+            """,
+            (usuario, senha, nome, perfil)
+        )
+
+        conn.commit()
+
+        st.success("Usuário cadastrado!")
+
 # ----------------------------
 # LISTA CATEQUIZANDOS
 # ----------------------------
@@ -295,6 +323,29 @@ elif menu == "Lista Catequizandos":
     )
 
     st.dataframe(df,use_container_width=True)
+
+#-----------------------------
+#LISTA CATEQUISTA
+#-----------------------------
+
+elif menu == "Lista Catequistas":
+
+    st.header("👨‍🏫 Lista de Catequistas")
+
+    cursor.execute("""
+    SELECT nome, usuario, perfil
+    FROM usuarios
+    ORDER BY nome
+    """)
+
+    dados = cursor.fetchall()
+
+    df = pd.DataFrame(
+        dados,
+        columns=["Nome", "Usuário", "Perfil"]
+    )
+
+    st.dataframe(df, use_container_width=True)
 
 # ----------------------------
 # REGISTRO PRESENÇA
@@ -349,6 +400,46 @@ elif menu == "Registro Presença":
         conn.commit()
 
         st.success("Presença registrada!")
+
+#-----------------------------
+# RELATORIO DE FALTAS
+#-----------------------------
+
+elif menu == "Relatório Faltas":
+
+    st.header("⚠ Relatório de Faltas")
+
+    if st.session_state["perfil"] == "admin":
+
+        cursor.execute("""
+        SELECT nome, COUNT(*)
+        FROM presenca
+        WHERE presenca='F'
+        GROUP BY nome
+        ORDER BY COUNT(*) DESC
+        """)
+
+    else:
+
+        cursor.execute("""
+        SELECT nome, COUNT(*)
+        FROM presenca
+        WHERE presenca='F'
+        AND turma = ANY(%s)
+        GROUP BY nome
+        ORDER BY COUNT(*) DESC
+        """, (turmas_permitidas,))
+
+    dados = cursor.fetchall()
+
+    df = pd.DataFrame(
+        dados,
+        columns=["Catequizando", "Total de Faltas"]
+    )
+
+    st.dataframe(df, use_container_width=True)
+
+
 
 # ----------------------------
 # GESTÃO DE ACESSO

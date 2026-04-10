@@ -84,6 +84,21 @@ abas_permitidas = list(set([p[0] for p in permissoes]))
 turmas_permitidas = list(set([p[2] for p in permissoes if p[2] != None]))
 
 # ----------------------------
+# FUNÇÃO DE VERIFICAÇÃO DE ACESSO
+# ----------------------------
+
+def verificar_acesso(aba):
+
+    if st.session_state["perfil"] == "admin":
+        return True
+
+    if aba not in abas_permitidas:
+        st.error("🚫 Você não possui permissão para acessar esta área.")
+        st.stop()
+
+    return True
+
+# ----------------------------
 # MENU LATERAL
 # ----------------------------
 
@@ -151,6 +166,7 @@ menu = st.session_state["menu"]
 # ----------------------------
 
 if menu == "Dashboard":
+    verificar_acesso("Dashboard")
 
     st.title("📊 Painel da Catequese")
 
@@ -170,6 +186,8 @@ if menu == "Dashboard":
 # ----------------------------
 
 elif menu == "Cadastro Turmas":
+
+    verificar_acesso("Cadastro Turmas")
 
     st.header("🏫 Cadastro de Turmas")
 
@@ -209,6 +227,8 @@ elif menu == "Cadastro Turmas":
 # ----------------------------
 
 elif menu == "Cadastro Catequizando":
+
+    verificar_acesso("Cadastro Catequizando")
 
     st.header("👤 Cadastro de Catequizando")
 
@@ -284,6 +304,8 @@ elif menu == "Cadastro Catequizando":
 
 elif menu == "Cadastro Usuários":
 
+    verificar_acesso("Cadastro Usuários")
+
     st.header("🔐 Cadastro de Usuários")
 
     nome = st.text_input("Nome")
@@ -309,6 +331,8 @@ elif menu == "Cadastro Usuários":
 # ----------------------------
 
 elif menu == "Registro Presença":
+
+    verificar_acesso("Registro Presença")
 
     st.header("✅ Registro de Presença")
 
@@ -358,6 +382,8 @@ elif menu == "Registro Presença":
 
 elif menu == "Lista Catequizandos":
 
+    verificar_acesso("Lista Catequizandos")
+
     st.header("📋 Lista de Catequizandos")
 
     if st.session_state["perfil"] == "admin":
@@ -393,6 +419,8 @@ elif menu == "Lista Catequizandos":
 
 elif menu == "Lista Catequistas":
 
+    verificar_acesso("Lista Catequistas")
+
     st.header("👨‍🏫 Lista de Catequistas")
 
     cursor.execute("""
@@ -415,6 +443,8 @@ elif menu == "Lista Catequistas":
 # ----------------------------
 
 elif menu == "Relatório Faltas":
+
+    verificar_acesso("Relatório Faltas")
 
     st.header("⚠ Relatório de Faltas")
 
@@ -453,6 +483,8 @@ elif menu == "Relatório Faltas":
 # ----------------------------
 
 elif menu == "Gestão de Acesso":
+
+    verificar_acesso("Gestão de Acesso")
 
     st.header("🔑 Gestão de Acesso")
 

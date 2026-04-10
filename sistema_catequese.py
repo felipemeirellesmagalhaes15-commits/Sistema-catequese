@@ -143,6 +143,8 @@ elif menu == "Cadastro Turmas":
 
     st.header("🏫 Cadastro de Turmas")
 
+    st.subheader("Nova Turma")
+
     nome = st.text_input("Nome da Turma")
 
     comunidade = st.selectbox(
@@ -166,6 +168,60 @@ elif menu == "Cadastro Turmas":
 
         st.success("Turma cadastrada!")
 
+    st.divider()
+
+    st.subheader("Turmas cadastradas")
+
+    cursor.execute("""
+    SELECT id,nome,comunidade,catequista
+    FROM turmas
+    ORDER BY nome
+    """)
+
+    dados = cursor.fetchall()
+
+    df = pd.DataFrame(
+        dados,
+        columns=["ID","Turma","Comunidade","Catequista"]
+    )
+
+    st.dataframe(df, use_container_width=True)
+
+    st.subheader("Editar Turma")
+
+    turma_id = st.selectbox(
+        "Selecione a Turma",
+        df["ID"]
+    )
+
+    if turma_id:
+
+        cursor.execute(
+            "SELECT nome,comunidade,catequista FROM turmas WHERE id=%s",
+            (int(turma_id),)
+        )
+
+        dados_turma = cursor.fetchone()
+
+        nome_edit = st.text_input("Nome", dados_turma[0])
+        comunidade_edit = st.text_input("Comunidade", dados_turma[1])
+        catequista_edit = st.text_input("Catequista", dados_turma[2])
+
+        if st.button("Atualizar Turma"):
+
+            cursor.execute(
+                """
+                UPDATE turmas
+                SET nome=%s, comunidade=%s, catequista=%s
+                WHERE id=%s
+                """,
+                (nome_edit, comunidade_edit, catequista_edit, turma_id)
+            )
+
+            conn.commit()
+
+            st.success("Turma atualizada!")
+
 # ----------------------------
 # CADASTRO CATEQUIZANDO
 # ----------------------------
@@ -183,6 +239,10 @@ elif menu == "Cadastro Catequizando":
         nome = st.text_input("Nome")
         turma = st.selectbox("Turma", turmas)
         telefone = st.text_input("Telefone")
+
+        endereco = st.text_input("Endereço")
+        bairro = st.text_input("Bairro")
+        cidade = st.text_input("Cidade")
 
     with col2:
         comunidade = st.selectbox(
@@ -202,10 +262,10 @@ elif menu == "Cadastro Catequizando":
         cursor.execute(
             """
             INSERT INTO catequizandos
-            (nome,turma,comunidade,telefone,sacramento,data_cadastro)
-            VALUES (%s,%s,%s,%s,%s,%s)
+            (nome,turma,comunidade,telefone,endereco,bairro,cidade,sacramento,data_cadastro)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """,
-            (nome, turma, comunidade, telefone, sacramento, data_cadastro)
+            (nome, turma, comunidade, telefone, endereco, bairro, cidade, sacramento, data_cadastro)
         )
 
         conn.commit()
@@ -266,6 +326,9 @@ elif menu == "Lista Catequizandos":
     turma,
     comunidade,
     telefone,
+    endereco,
+    bairro,
+    cidade,
     sacramento,
     TO_CHAR(data_cadastro,'DD/MM/YYYY')
     FROM catequizandos
@@ -281,6 +344,9 @@ elif menu == "Lista Catequizandos":
             "Turma",
             "Comunidade",
             "Telefone",
+            "Endereço",
+            "Bairro",
+            "Cidade",
             "Sacramento",
             "Data Cadastro"
         ]

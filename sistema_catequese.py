@@ -356,38 +356,86 @@ elif menu == "Registro Presença":
 
 elif menu == "Gestão de Acesso":
 
-    st.header("Gestão de Acesso")
+    st.header("🔑 Gestão de Acesso")
 
-    cursor.execute("SELECT usuario FROM usuarios")
-
+    # LISTA USUÁRIOS
+    cursor.execute("SELECT usuario FROM usuarios ORDER BY usuario")
     usuarios = [u[0] for u in cursor.fetchall()]
 
-    usuario_sel = st.selectbox("Usuário",usuarios)
+    usuario_sel = st.selectbox("Usuário", usuarios)
 
+    # BUSCAR PERMISSÕES ATUAIS
+    cursor.execute("""
+    SELECT aba, comunidade, turma
+    FROM permissoes_usuario
+    WHERE usuario=%s
+    """,(usuario_sel,))
+
+    permissoes = cursor.fetchall()
+
+    abas_atuais = list(set([p[0] for p in permissoes if p[0] != None]))
+    comunidades_atuais = list(set([p[1] for p in permissoes if p[1] != None]))
+    turmas_atuais = list(set([p[2] for p in permissoes if p[2] != None]))
+
+    st.subheader("Permissões atuais")
+
+    if permissoes:
+        df_perm = pd.DataFrame(
+            permissoes,
+            columns=["Aba","Comunidade","Turma"]
+        )
+        st.dataframe(df_perm,use_container_width=True)
+    else:
+        st.info("Este usuário ainda não possui permissões cadastradas.")
+
+    st.divider()
+
+    st.subheader("Editar permissões")
+
+    # ABAS
     abas = [
         "Dashboard",
         "Cadastro Turmas",
         "Cadastro Catequizando",
+        "Cadastro Usuários",
         "Lista Catequizandos",
+        "Lista Catequistas",
         "Registro Presença",
         "Relatório Faltas"
     ]
 
-    abas_sel = st.multiselect("Abas Permitidas",abas)
+    abas_sel = st.multiselect(
+        "Abas Permitidas",
+        abas,
+        default=abas_atuais
+    )
 
-    cursor.execute("SELECT nome FROM turmas")
-
-    turmas = [t[0] for t in cursor.fetchall()]
-
-    turmas_sel = st.multiselect("Turmas Permitidas",turmas)
-
+    # COMUNIDADES
     comunidades = [
-        "Avelar","Granja","Antonio Joaquim","Vista Alegre","Saudade"
+        "Avelar",
+        "Granja",
+        "Antonio Joaquim",
+        "Vista Alegre",
+        "Saudade"
     ]
 
-    comunidades_sel = st.multiselect("Comunidades Permitidas",comunidades)
+    comunidades_sel = st.multiselect(
+        "Comunidades Permitidas",
+        comunidades,
+        default=comunidades_atuais
+    )
 
-    if st.button("Salvar Permissões"):
+    # TURMAS
+    cursor.execute("SELECT nome FROM turmas ORDER BY nome")
+    turmas = [t[0] for t in cursor.fetchall()]
+
+    turmas_sel = st.multiselect(
+        "Turmas Permitidas",
+        turmas,
+        default=turmas_atuais
+    )
+
+    if st.button("💾 Salvar Permissões"):
 
         cursor.execute(
         "DELETE FROM permissoes_usuario WHERE usuario=%s",
@@ -395,8 +443,8 @@ elif menu == "Gestão de Acesso":
         )
 
         for aba in abas_sel:
-            for turma in turmas_sel:
-                for comunidade in comunidades_sel:
+            for comunidade in comunidades_sel:
+                for turma in turmas_sel:
 
                     cursor.execute("""
                     INSERT INTO permissoes_usuario
@@ -406,4 +454,4 @@ elif menu == "Gestão de Acesso":
 
         conn.commit()
 
-        st.success("Permissões atualizadas!")
+        st.success("Permissões atualizadas com sucesso!")

@@ -72,18 +72,16 @@ if not st.session_state["logado"]:
 # PERMISSÕES
 # ----------------------------
 
-cursor.execute(
-"""
-SELECT aba,comunidade,turma,catequista
+cursor.execute("""
+SELECT aba, comunidade, turma
 FROM permissoes_usuario
 WHERE usuario=%s
-""",
-(st.session_state["usuario"],)
-)
+""",(st.session_state["usuario"],))
 
 permissoes = cursor.fetchall()
 
 abas_permitidas = list(set([p[0] for p in permissoes]))
+turmas_permitidas = list(set([p[2] for p in permissoes if p[2] != None]))
 
 # ----------------------------
 # SIDEBAR
@@ -123,7 +121,7 @@ with st.sidebar:
             "exclamation-triangle",
             "key"
         ],
-        default_index=0,
+        default_index=0
     )
 
     if st.button("🚪 Sair"):
@@ -136,18 +134,18 @@ with st.sidebar:
 
 if menu == "Dashboard":
 
-    st.title("📊 Painel da Catequese")
+    st.title("Painel da Catequese")
 
     cursor.execute("SELECT COUNT(*) FROM catequizandos")
-    total_catequizandos = cursor.fetchone()[0]
+    total = cursor.fetchone()[0]
 
     cursor.execute("SELECT COUNT(*) FROM turmas")
     total_turmas = cursor.fetchone()[0]
 
-    col1, col2 = st.columns(2)
+    col1,col2 = st.columns(2)
 
-    col1.metric("Catequizandos", total_catequizandos)
-    col2.metric("Turmas", total_turmas)
+    col1.metric("Catequizandos",total)
+    col2.metric("Turmas",total_turmas)
 
 # ----------------------------
 # CADASTRO TURMAS
@@ -168,24 +166,16 @@ elif menu == "Cadastro Turmas":
 
     if st.button("Salvar Turma"):
 
-        cursor.execute(
-            """
-            INSERT INTO turmas (nome,comunidade,catequista)
-            VALUES (%s,%s,%s)
-            """,
-            (nome,comunidade,catequista)
-        )
+        cursor.execute("""
+        INSERT INTO turmas (nome,comunidade,catequista)
+        VALUES (%s,%s,%s)
+        """,(nome,comunidade,catequista))
 
         conn.commit()
 
         st.success("Turma cadastrada!")
 
-    cursor.execute(
-    """
-    SELECT id,nome,comunidade,catequista
-    FROM turmas
-    """
-    )
+    cursor.execute("SELECT id,nome,comunidade,catequista FROM turmas")
 
     dados = cursor.fetchall()
 
@@ -204,13 +194,20 @@ elif menu == "Cadastro Catequizando":
 
     st.header("Cadastro Catequizando")
 
-    cursor.execute(
-    """
-    SELECT id,nome,comunidade,catequista
-    FROM turmas
-    ORDER BY nome
-    """
-    )
+    if st.session_state["perfil"] == "admin":
+
+        cursor.execute("""
+        SELECT id,nome,comunidade,catequista
+        FROM turmas
+        """)
+
+    else:
+
+        cursor.execute("""
+        SELECT id,nome,comunidade,catequista
+        FROM turmas
+        WHERE nome = ANY(%s)
+        """,(turmas_permitidas,))
 
     dados_turmas = cursor.fetchall()
 
@@ -254,14 +251,11 @@ elif menu == "Cadastro Catequizando":
 
     if st.button("Salvar"):
 
-        cursor.execute(
-        """
+        cursor.execute("""
         INSERT INTO catequizandos
         (nome,turma,comunidade,telefone,endereco,bairro,cidade,sacramento,data_cadastro)
         VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
-        """,
-        (nome,turma,comunidade,telefone,endereco,bairro,cidade,sacramento,data_cadastro)
-        )
+        """,(nome,turma,comunidade,telefone,endereco,bairro,cidade,sacramento,data_cadastro))
 
         conn.commit()
 
@@ -275,13 +269,20 @@ elif menu == "Lista Catequizandos":
 
     st.header("Lista de Catequizandos")
 
-    cursor.execute(
-    """
-    SELECT
-    id,nome,turma,comunidade,telefone,endereco,bairro,cidade,sacramento
-    FROM catequizandos
-    """
-    )
+    if st.session_state["perfil"] == "admin":
+
+        cursor.execute("""
+        SELECT id,nome,turma,comunidade,telefone,endereco,bairro,cidade,sacramento
+        FROM catequizandos
+        """)
+
+    else:
+
+        cursor.execute("""
+        SELECT id,nome,turma,comunidade,telefone,endereco,bairro,cidade,sacramento
+        FROM catequizandos
+        WHERE turma = ANY(%s)
+        """,(turmas_permitidas,))
 
     dados = cursor.fetchall()
 
@@ -296,30 +297,6 @@ elif menu == "Lista Catequizandos":
     st.dataframe(df,use_container_width=True)
 
 # ----------------------------
-# LISTA CATEQUISTAS
-# ----------------------------
-
-elif menu == "Lista Catequistas":
-
-    st.header("Lista de Catequistas")
-
-    cursor.execute(
-    """
-    SELECT nome,usuario,perfil
-    FROM usuarios
-    """
-    )
-
-    dados = cursor.fetchall()
-
-    df = pd.DataFrame(
-        dados,
-        columns=["Nome","Usuário","Perfil"]
-    )
-
-    st.dataframe(df,use_container_width=True)
-
-# ----------------------------
 # REGISTRO PRESENÇA
 # ----------------------------
 
@@ -327,17 +304,26 @@ elif menu == "Registro Presença":
 
     st.header("Registro de Presença")
 
-    data_encontro = st.date_input("Data",date.today())
+    data = st.date_input("Data",date.today())
 
-    cursor.execute("SELECT nome FROM turmas")
+    if st.session_state["perfil"] == "admin":
+
+        cursor.execute("SELECT nome FROM turmas")
+
+    else:
+
+        cursor.execute(
+        "SELECT nome FROM turmas WHERE nome = ANY(%s)",
+        (turmas_permitidas,)
+        )
 
     turmas = [t[0] for t in cursor.fetchall()]
 
     turma = st.selectbox("Turma",turmas)
 
     cursor.execute(
-        "SELECT nome FROM catequizandos WHERE turma=%s",
-        (turma,)
+    "SELECT nome FROM catequizandos WHERE turma=%s",
+    (turma,)
     )
 
     alunos = cursor.fetchall()
@@ -354,41 +340,15 @@ elif menu == "Registro Presença":
 
         for nome,status in presencas:
 
-            cursor.execute(
-            """
+            cursor.execute("""
             INSERT INTO presenca
             (data,nome,turma,presenca)
             VALUES (%s,%s,%s,%s)
-            """,
-            (data_encontro,nome,turma,status)
-            )
+            """,(data,nome,turma,status))
 
         conn.commit()
 
         st.success("Presença registrada!")
-
-# ----------------------------
-# RELATÓRIO FALTAS
-# ----------------------------
-
-elif menu == "Relatório Faltas":
-
-    st.header("Relatório de Faltas")
-
-    cursor.execute(
-    """
-    SELECT nome,COUNT(*)
-    FROM presenca
-    WHERE presenca='F'
-    GROUP BY nome
-    """
-    )
-
-    dados = cursor.fetchall()
-
-    df = pd.DataFrame(dados,columns=["Nome","Faltas"])
-
-    st.dataframe(df,use_container_width=True)
 
 # ----------------------------
 # GESTÃO DE ACESSO
@@ -399,6 +359,7 @@ elif menu == "Gestão de Acesso":
     st.header("Gestão de Acesso")
 
     cursor.execute("SELECT usuario FROM usuarios")
+
     usuarios = [u[0] for u in cursor.fetchall()]
 
     usuario_sel = st.selectbox("Usuário",usuarios)
@@ -407,25 +368,24 @@ elif menu == "Gestão de Acesso":
         "Dashboard",
         "Cadastro Turmas",
         "Cadastro Catequizando",
-        "Cadastro Usuários",
         "Lista Catequizandos",
-        "Lista Catequistas",
         "Registro Presença",
         "Relatório Faltas"
     ]
 
     abas_sel = st.multiselect("Abas Permitidas",abas)
 
+    cursor.execute("SELECT nome FROM turmas")
+
+    turmas = [t[0] for t in cursor.fetchall()]
+
+    turmas_sel = st.multiselect("Turmas Permitidas",turmas)
+
     comunidades = [
         "Avelar","Granja","Antonio Joaquim","Vista Alegre","Saudade"
     ]
 
-    comunidades_sel = st.multiselect("Comunidades",comunidades)
-
-    cursor.execute("SELECT nome FROM turmas")
-    turmas = [t[0] for t in cursor.fetchall()]
-
-    turmas_sel = st.multiselect("Turmas",turmas)
+    comunidades_sel = st.multiselect("Comunidades Permitidas",comunidades)
 
     if st.button("Salvar Permissões"):
 
@@ -435,18 +395,15 @@ elif menu == "Gestão de Acesso":
         )
 
         for aba in abas_sel:
-            for com in comunidades_sel:
-                for turma in turmas_sel:
+            for turma in turmas_sel:
+                for comunidade in comunidades_sel:
 
-                    cursor.execute(
-                    """
+                    cursor.execute("""
                     INSERT INTO permissoes_usuario
                     (usuario,aba,comunidade,turma)
                     VALUES (%s,%s,%s,%s)
-                    """,
-                    (usuario_sel,aba,com,turma)
-                    )
+                    """,(usuario_sel,aba,comunidade,turma))
 
         conn.commit()
 
-        st.success("Permissões salvas!")
+        st.success("Permissões atualizadas!")

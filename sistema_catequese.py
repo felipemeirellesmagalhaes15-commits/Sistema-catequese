@@ -149,6 +149,9 @@ with st.sidebar:
         if st.button("Relatório Faltas"):
             st.session_state["menu"] = "Relatório Faltas"
 
+        if st.button("Relatório Frequência"):
+            st.session_state["menu"] = "Relatório Frequência"
+
     # ADMIN
     with st.expander("🟪 ADMINISTRAÇÃO"):
 
@@ -175,20 +178,56 @@ menu = st.session_state["menu"]
 # ----------------------------
 
 if menu == "Dashboard":
+
     verificar_acesso("Dashboard")
 
     st.title("📊 Painel da Catequese")
 
     cursor.execute("SELECT COUNT(*) FROM catequizandos")
-    total = cursor.fetchone()[0]
+    total_catequizandos = cursor.fetchone()[0]
 
     cursor.execute("SELECT COUNT(*) FROM turmas")
     total_turmas = cursor.fetchone()[0]
 
-    col1,col2 = st.columns(2)
+    cursor.execute("SELECT COUNT(*) FROM usuarios WHERE perfil='catequista'")
+    total_catequistas = cursor.fetchone()[0]
 
-    col1.metric("Catequizandos",total)
+    cursor.execute("""
+    SELECT 
+    SUM(CASE WHEN presenca='P' THEN 1 ELSE 0 END)*100.0 / COUNT(*)
+    FROM presenca
+    """)
+
+    presenca_media = cursor.fetchone()[0]
+
+    col1,col2,col3,col4 = st.columns(4)
+
+    col1.metric("Catequizandos",total_catequizandos)
     col2.metric("Turmas",total_turmas)
+    col3.metric("Catequistas",total_catequistas)
+
+    if presenca_media:
+        col4.metric("Presença Média",f"{presenca_media:.1f}%")
+    else:
+        col4.metric("Presença Média","0%")
+
+    st.divider()
+
+    # Catequizandos por sacramento
+
+    cursor.execute("""
+    SELECT sacramento, COUNT(*)
+    FROM catequizandos
+    GROUP BY sacramento
+    """)
+
+    dados = cursor.fetchall()
+
+    df = pd.DataFrame(dados,columns=["Sacramento","Quantidade"])
+
+    st.subheader("Catequizandos por Sacramento")
+
+    st.bar_chart(df.set_index("Sacramento"))
 
 # ----------------------------
 # CADASTRO TURMAS
@@ -713,6 +752,60 @@ elif menu == "Relatório Faltas":
     df["Data do Encontro"] = pd.to_datetime(df["Data do Encontro"]).dt.strftime("%d/%m/%Y")
     st.dataframe(df,use_container_width=True)
 
+
+# ----------------------------
+# RELATÓRIO FREQUÊNCIA
+# ----------------------------
+
+# ----------------------------
+# RELATÓRIO FREQUÊNCIA
+# ----------------------------
+
+elif menu == "Relatório Frequência":
+
+    verificar_acesso("Relatório Frequência")
+
+    st.header("📊 Frequência dos Catequizandos")
+
+    cursor.execute("""
+    SELECT 
+    nome,
+    SUM(CASE WHEN presenca='P' THEN 1 ELSE 0 END) AS presencas,
+    SUM(CASE WHEN presenca='F' THEN 1 ELSE 0 END) AS faltas
+    FROM presenca
+    GROUP BY nome
+    ORDER BY nome
+    """)
+
+    dados = cursor.fetchall()
+
+    df = pd.DataFrame(
+        dados,
+        columns=["Catequizando","Presenças","Faltas"]
+    )
+
+    # cálculo da frequência
+    df["Frequência %"] = (
+        df["Presenças"] /
+        (df["Presenças"] + df["Faltas"])
+    ) * 100
+
+    df["Frequência %"] = df["Frequência %"].round(1)
+
+    # função para definir status
+    def definir_status(freq):
+
+        if freq >= 75:
+            return "✅ Regular"
+        elif freq >= 50:
+            return "⚠ Atenção"
+        else:
+            return "❌ Crítico"
+
+    df["Status"] = df["Frequência %"].apply(definir_status)
+
+    st.dataframe(df,use_container_width=True)
+
 # ----------------------------
 # GESTÃO DE ACESSO
 # ----------------------------
@@ -760,7 +853,8 @@ elif menu == "Gestão de Acesso":
         "Registro Presença",
         "Lista Catequizandos",
         "Lista Catequistas",
-        "Relatório Faltas"
+        "Relatório Faltas",
+        "Relatório Frequência"
     ]
 
     abas_sel = st.multiselect("Abas Permitidas",abas,default=abas_atuais)

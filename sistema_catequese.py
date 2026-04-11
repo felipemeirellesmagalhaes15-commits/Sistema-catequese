@@ -336,7 +336,7 @@ elif menu == "Registro Presença":
 
     st.header("✅ Registro de Presença")
 
-    data = st.date_input("Data", date.today(), format="DD/MM/YYYY")
+    data = st.date_input("Data do Encontro", date.today(), format="DD/MM/YYYY")
 
     if st.session_state["perfil"] == "admin":
         cursor.execute("SELECT nome FROM turmas")

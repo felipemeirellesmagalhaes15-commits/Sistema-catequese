@@ -122,6 +122,15 @@ with st.sidebar:
         if st.button("Cadastro Usuários"):
             st.session_state["menu"] = "Cadastro Usuários"
 
+        if st.button("Cadastro Comunidades"):
+            st.session_state["menu"] = "Cadastro Comunidades"
+
+        if st.button("Cadastro Perfis"):
+            st.session_state["menu"] = "Cadastro Perfis"
+
+        if st.button("Cadastro Sacramentos"):
+            st.session_state["menu"] = "Cadastro Sacramentos"
+
     # PRESENÇA
     with st.expander("🟨 PRESENÇA"):
 
@@ -193,10 +202,10 @@ elif menu == "Cadastro Turmas":
 
     nome = st.text_input("Nome da Turma")
 
-    comunidade = st.selectbox(
-        "Comunidade",
-        ["Avelar","Granja","Antonio Joaquim","Vista Alegre","Saudade"]
-    )
+    cursor.execute("SELECT nome FROM comunidades ORDER BY nome")
+    comunidades = [c[0] for c in cursor.fetchall()]
+
+    comunidade = st.selectbox("Comunidade", comunidades)
 
     catequista = st.text_input("Catequista")
 
@@ -274,15 +283,15 @@ elif menu == "Cadastro Catequizando":
 
     with col2:
 
-        comunidade = st.selectbox(
-            "Comunidade",
-            ["Avelar","Granja","Antonio Joaquim","Vista Alegre","Saudade"]
-        )
+        cursor.execute("SELECT nome FROM comunidades ORDER BY nome")
+        comunidades = [c[0] for c in cursor.fetchall()]
 
-        sacramento = st.selectbox(
-            "Sacramento",
-            ["Primeira Eucaristia","Crisma"]
-        )
+        comunidade = st.selectbox("Comunidade", comunidades)
+
+        cursor.execute("SELECT nome FROM sacramentos ORDER BY nome")
+        sacramentos = [s[0] for s in cursor.fetchall()]
+
+        sacramento = st.selectbox("Sacramento", sacramentos)
 
         data_cadastro = st.date_input("Data Cadastro", date.today(), format="DD/MM/YYYY")
 
@@ -312,7 +321,7 @@ elif menu == "Cadastro Usuários":
 
 
     cursor.execute("""
-       SELECT nome, usuario, senha, perfil
+       SELECT nome, usuario, senha, perfil, comunidade
        FROM usuarios
        ORDER BY nome
        """)
@@ -321,26 +330,34 @@ elif menu == "Cadastro Usuários":
 
     lista = []
 
-    for nome, usuario, senha, perfil in dados:
+    for nome, usuario, senha, perfil, comunidade in dados:
         lista.append([
             nome,
             usuario,
             "******",
-            perfil
+            perfil,
+            comunidade
         ])
 
     nome = st.text_input("Nome")
     usuario = st.text_input("Login")
     senha = st.text_input("Senha", type="password")
+    cursor.execute("SELECT nome FROM comunidades ORDER BY nome")
+    comunidades = [c[0] for c in cursor.fetchall()]
 
-    perfil = st.selectbox("Perfil", ["admin","catequista"])
+    comunidades = st.selectbox("Comunidades", comunidades)
+
+    cursor.execute("SELECT nome FROM perfis ORDER BY nome")
+    perfis = [p[0] for p in cursor.fetchall()]
+
+    perfil = st.selectbox("Perfil", perfis)
 
     if st.button("Salvar usuário"):
 
         cursor.execute("""
-        INSERT INTO usuarios (usuario,senha,nome,perfil)
+        INSERT INTO usuarios (usuario,senha,nome,perfil,comunidades)
         VALUES (%s,%s,%s,%s)
-        """,(usuario,senha,nome,perfil))
+        """,(usuario,senha,nome,perfil,comunidades))
 
         conn.commit()
 
@@ -348,12 +365,124 @@ elif menu == "Cadastro Usuários":
 
     df = pd.DataFrame(
         lista,
-        columns=["Nome", "Login", "Senha", "Perfil"]
+        columns=["Nome", "Login", "Senha", "Perfil",'Comunidade']
     )
 
     st.dataframe(df, use_container_width=True)
 
     st.divider()
+
+# ----------------------------
+# CADASTRO COMUNIDADES
+# ----------------------------
+
+elif menu == "Cadastro Comunidades":
+
+    verificar_acesso("Cadastro Comunidades")
+
+    st.header("🏘 Cadastro de Comunidades")
+
+    nome = st.text_input("Nome da Comunidade")
+
+    if st.button("Salvar Comunidade"):
+
+        cursor.execute("""
+        INSERT INTO comunidades (nome)
+        VALUES (%s)
+        """,(nome,))
+
+        conn.commit()
+
+        st.success("Comunidade cadastrada!")
+
+    st.divider()
+
+    cursor.execute("SELECT id,nome FROM comunidades ORDER BY nome")
+
+    dados = cursor.fetchall()
+
+    df = pd.DataFrame(
+        dados,
+        columns=["ID","Comunidade"]
+    )
+
+    st.dataframe(df,use_container_width=True)
+
+# ----------------------------
+# CADASTRO PERFIS
+# ----------------------------
+
+elif menu == "Cadastro Perfis":
+
+    verificar_acesso("Cadastro Perfis")
+
+    st.header("👤 Cadastro de Perfis")
+
+    nome = st.text_input("Nome do Perfil")
+
+    if st.button("Salvar Perfil"):
+
+        cursor.execute("""
+        INSERT INTO perfis (nome)
+        VALUES (%s)
+        """,(nome,))
+
+        conn.commit()
+
+        st.success("Perfil cadastrado!")
+
+    st.divider()
+
+    cursor.execute("SELECT id,nome FROM perfis ORDER BY nome")
+
+    dados = cursor.fetchall()
+
+    df = pd.DataFrame(
+        dados,
+        columns=["ID","Perfil"]
+    )
+
+    st.dataframe(df,use_container_width=True)
+
+# ----------------------------
+# CADASTRO SACRAMENTOS
+# ----------------------------
+
+elif menu == "Cadastro Sacramentos":
+
+    verificar_acesso("Cadastro Sacramentos")
+
+    st.header("✝ Cadastro de Sacramentos")
+
+    nome = st.text_input("Nome do Sacramento")
+
+    if st.button("Salvar Sacramento"):
+
+        cursor.execute("""
+        INSERT INTO sacramentos (nome)
+        VALUES (%s)
+        """,(nome,))
+
+        conn.commit()
+
+        st.success("Sacramento cadastrado!")
+
+    st.divider()
+
+    cursor.execute("""
+    SELECT id,nome
+    FROM sacramentos
+    ORDER BY nome
+    """)
+
+    dados = cursor.fetchall()
+
+    df = pd.DataFrame(
+        dados,
+        columns=["ID","Sacramento"]
+    )
+
+    st.dataframe(df,use_container_width=True)
 
 
 # ----------------------------

@@ -317,36 +317,10 @@ elif menu == "Cadastro Usuários":
 
     st.header("🔐 Cadastro de Usuários")
 
-    st.subheader("Usuários Cadastrados")
+    # -----------------------
+    # FORMULÁRIO CADASTRO
+    # -----------------------
 
-    cursor.execute("""
-    SELECT nome, usuario, senha, perfil, comunidade
-    FROM usuarios
-    ORDER BY nome
-    """)
-
-    dados = cursor.fetchall()
-
-    lista = []
-
-    for nome, usuario, senha, perfil, comunidade in dados:
-
-        lista.append([
-            nome,
-            usuario,
-            "******",
-            perfil,
-            comunidade
-        ])
-    df = pd.DataFrame(
-        lista,
-        columns=["Nome", "Login", "Senha", "Perfil", "Comunidade"]
-    )
-
-    st.dataframe(df, use_container_width=True)
-
-    st.divider()
-        
     nome = st.text_input("Nome")
     usuario = st.text_input("Login")
     senha = st.text_input("Senha", type="password")
@@ -372,6 +346,40 @@ elif menu == "Cadastro Usuários":
 
         st.success("Usuário cadastrado!")
 
+    st.divider()
+
+    # -----------------------
+    # LISTA USUÁRIOS
+    # -----------------------
+
+    st.subheader("Usuários Cadastrados")
+
+    cursor.execute("""
+    SELECT nome, usuario, senha, perfil, comunidade
+    FROM usuarios
+    ORDER BY nome
+    """)
+
+    dados = cursor.fetchall()
+
+    lista = []
+
+    for nome, usuario, senha, perfil, comunidade in dados:
+
+        lista.append([
+            nome,
+            usuario,
+            "******",
+            perfil,
+            comunidade
+        ])
+
+    df = pd.DataFrame(
+        lista,
+        columns=["Nome","Login","Senha","Perfil","Comunidade"]
+    )
+
+    st.dataframe(df,use_container_width=True)
 
 # ----------------------------
 # CADASTRO COMUNIDADES

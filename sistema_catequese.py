@@ -710,7 +710,7 @@ elif menu == "Relatório Faltas":
             "Sacramento"
         ]
     )
-
+    df["Data do Encontro"] = pd.to_datetime(df["Data do Encontro"]).dt.strftime("%d/%m/%Y")
     st.dataframe(df,use_container_width=True)
 
 # ----------------------------

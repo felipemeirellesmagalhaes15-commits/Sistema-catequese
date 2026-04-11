@@ -338,7 +338,15 @@ elif menu == "Cadastro Usuários":
             perfil,
             comunidade
         ])
+    df = pd.DataFrame(
+        lista,
+        columns=["Nome", "Login", "Senha", "Perfil", "Comunidade"]
+    )
 
+    st.dataframe(df, use_container_width=True)
+
+    st.divider()
+        
     nome = st.text_input("Nome")
     usuario = st.text_input("Login")
     senha = st.text_input("Senha", type="password")
@@ -364,14 +372,6 @@ elif menu == "Cadastro Usuários":
 
         st.success("Usuário cadastrado!")
 
-        df = pd.DataFrame(
-            lista,
-            columns=["Nome", "Login", "Senha", "Perfil", "Comunidade"]
-        )
-
-        st.dataframe(df, use_container_width=True)
-
-        st.divider()
 
 # ----------------------------
 # CADASTRO COMUNIDADES

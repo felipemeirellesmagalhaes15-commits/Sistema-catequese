@@ -319,18 +319,18 @@ elif menu == "Cadastro Usuários":
 
     st.subheader("Usuários Cadastrados")
 
-
     cursor.execute("""
-       SELECT nome, usuario, senha, perfil, comunidade
-       FROM usuarios
-       ORDER BY nome
-       """)
+    SELECT nome, usuario, senha, perfil, comunidade
+    FROM usuarios
+    ORDER BY nome
+    """)
 
     dados = cursor.fetchall()
 
     lista = []
 
     for nome, usuario, senha, perfil, comunidade in dados:
+
         lista.append([
             nome,
             usuario,
@@ -339,13 +339,23 @@ elif menu == "Cadastro Usuários":
             comunidade
         ])
 
+    df = pd.DataFrame(
+        lista,
+        columns=["Nome","Login","Senha","Perfil","Comunidade"]
+    )
+
+    st.dataframe(df,use_container_width=True)
+
+    st.divider()
+
     nome = st.text_input("Nome")
     usuario = st.text_input("Login")
     senha = st.text_input("Senha", type="password")
-    cursor.execute("SELECT nome FROM comunidades ORDER BY nome")
-    comunidades = [c[0] for c in cursor.fetchall()]
 
-    comunidades = st.selectbox("Comunidades", comunidades)
+    cursor.execute("SELECT nome FROM comunidades ORDER BY nome")
+    lista_comunidades = [c[0] for c in cursor.fetchall()]
+
+    comunidade = st.selectbox("Comunidade", lista_comunidades)
 
     cursor.execute("SELECT nome FROM perfis ORDER BY nome")
     perfis = [p[0] for p in cursor.fetchall()]
@@ -355,22 +365,13 @@ elif menu == "Cadastro Usuários":
     if st.button("Salvar usuário"):
 
         cursor.execute("""
-        INSERT INTO usuarios (usuario,senha,nome,perfil,comunidades)
-        VALUES (%s,%s,%s,%s)
-        """,(usuario,senha,nome,perfil,comunidades))
+        INSERT INTO usuarios (usuario,senha,nome,perfil,comunidade)
+        VALUES (%s,%s,%s,%s,%s)
+        """,(usuario,senha,nome,perfil,comunidade))
 
         conn.commit()
 
-    st.success("Usuário cadastrado!")
-
-    df = pd.DataFrame(
-        lista,
-        columns=["Nome", "Login", "Senha", "Perfil",'Comunidade']
-    )
-
-    st.dataframe(df, use_container_width=True)
-
-    st.divider()
+        st.success("Usuário cadastrado!")
 
 # ----------------------------
 # CADASTRO COMUNIDADES

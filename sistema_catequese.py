@@ -308,6 +308,35 @@ elif menu == "Cadastro Usuários":
 
     st.header("🔐 Cadastro de Usuários")
 
+    st.subheader("Usuários Cadastrados")
+
+    cursor.execute("""
+    SELECT nome, usuario, senha, perfil
+    FROM usuarios
+    ORDER BY nome
+    """)
+
+    dados = cursor.fetchall()
+
+    lista = []
+
+    for nome, usuario, senha, perfil in dados:
+        lista.append([
+            nome,
+            usuario,
+            "******",
+            perfil
+        ])
+
+    df = pd.DataFrame(
+        lista,
+        columns=["Nome", "Login", "Senha", "Perfil"]
+    )
+
+    st.dataframe(df, use_container_width=True)
+
+    st.divider()
+
     nome = st.text_input("Nome")
     usuario = st.text_input("Login")
     senha = st.text_input("Senha", type="password")
@@ -339,13 +368,30 @@ elif menu == "Registro Presença":
     data = st.date_input("Data do Encontro", date.today(), format="DD/MM/YYYY")
 
     if st.session_state["perfil"] == "admin":
-        cursor.execute("SELECT nome FROM turmas")
+
+        cursor.execute("""
+        SELECT nome,catequista
+        FROM turmas
+        """)
+
     else:
-        cursor.execute("SELECT nome FROM turmas WHERE nome = ANY(%s)",(turmas_permitidas,))
 
-    turmas = [t[0] for t in cursor.fetchall()]
+        cursor.execute("""
+        SELECT nome,catequista
+        FROM turmas
+        WHERE nome = ANY(%s)
+        """, (turmas_permitidas,))
 
-    turma = st.selectbox("Turma", turmas)
+    dados_turmas = cursor.fetchall()
+
+    turmas_dict = {
+        f"{t[0]} | Catequista: {t[1]}": t[0]
+        for t in dados_turmas
+    }
+
+    turma_label = st.selectbox("Turma", list(turmas_dict.keys()))
+
+    turma = turmas_dict[turma_label]
 
     cursor.execute(
     "SELECT nome FROM catequizandos WHERE turma=%s",
@@ -389,16 +435,40 @@ elif menu == "Lista Catequizandos":
     if st.session_state["perfil"] == "admin":
 
         cursor.execute("""
-        SELECT id,nome,turma,comunidade,telefone,endereco,bairro,cidade,sacramento
-        FROM catequizandos
+        SELECT 
+        c.id,
+        c.nome,
+        t.nome,
+        t.catequista,
+        c.comunidade,
+        c.telefone,
+        c.endereco,
+        c.bairro,
+        c.cidade,
+        c.sacramento
+        FROM catequizandos c
+        LEFT JOIN turmas t
+        ON c.turma = t.nome
         """)
 
     else:
 
         cursor.execute("""
-        SELECT id,nome,turma,comunidade,telefone,endereco,bairro,cidade,sacramento
-        FROM catequizandos
-        WHERE turma = ANY(%s)
+        SELECT 
+        c.id,
+        c.nome,
+        t.nome,
+        t.catequista,
+        c.comunidade,
+        c.telefone,
+        c.endereco,
+        c.bairro,
+        c.cidade,
+        c.sacramento
+        FROM catequizandos c
+        LEFT JOIN turmas t
+        ON c.turma = t.nome
+        WHERE c.turma = ANY(%s)
         """,(turmas_permitidas,))
 
     dados = cursor.fetchall()
@@ -406,8 +476,16 @@ elif menu == "Lista Catequizandos":
     df = pd.DataFrame(
         dados,
         columns=[
-            "ID","Nome","Turma","Comunidade",
-            "Telefone","Endereço","Bairro","Cidade","Sacramento"
+            "ID",
+            "Nome",
+            "Turma",
+            "Catequista",
+            "Comunidade",
+            "Telefone",
+            "Endereço",
+            "Bairro",
+            "Cidade",
+            "Sacramento"
         ]
     )
 
@@ -451,29 +529,47 @@ elif menu == "Relatório Faltas":
     if st.session_state["perfil"] == "admin":
 
         cursor.execute("""
-        SELECT nome, COUNT(*)
-        FROM presenca
-        WHERE presenca='F'
-        GROUP BY nome
-        ORDER BY COUNT(*) DESC
+        SELECT 
+        p.data,
+        p.nome,
+        p.presenca,
+        c.comunidade,
+        c.sacramento
+        FROM presenca p
+        LEFT JOIN catequizandos c
+        ON p.nome = c.nome
+        WHERE p.presenca='F'
+        ORDER BY p.data DESC
         """)
 
     else:
 
         cursor.execute("""
-        SELECT nome, COUNT(*)
-        FROM presenca
-        WHERE presenca='F'
-        AND turma = ANY(%s)
-        GROUP BY nome
-        ORDER BY COUNT(*) DESC
+        SELECT 
+        p.data,
+        p.nome,
+        p.presenca,
+        c.comunidade,
+        c.sacramento
+        FROM presenca p
+        LEFT JOIN catequizandos c
+        ON p.nome = c.nome
+        WHERE p.presenca='F'
+        AND p.turma = ANY(%s)
+        ORDER BY p.data DESC
         """,(turmas_permitidas,))
 
     dados = cursor.fetchall()
 
     df = pd.DataFrame(
         dados,
-        columns=["Catequizando","Total de Faltas"]
+        columns=[
+            "Data do Encontro",
+            "Catequizando",
+            "Falta",
+            "Comunidade",
+            "Sacramento"
+        ]
     )
 
     st.dataframe(df,use_container_width=True)

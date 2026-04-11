@@ -310,32 +310,7 @@ elif menu == "Cadastro Usuários":
 
     st.subheader("Usuários Cadastrados")
 
-    cursor.execute("""
-    SELECT nome, usuario, senha, perfil
-    FROM usuarios
-    ORDER BY nome
-    """)
 
-    dados = cursor.fetchall()
-
-    lista = []
-
-    for nome, usuario, senha, perfil in dados:
-        lista.append([
-            nome,
-            usuario,
-            "******",
-            perfil
-        ])
-
-    df = pd.DataFrame(
-        lista,
-        columns=["Nome", "Login", "Senha", "Perfil"]
-    )
-
-    st.dataframe(df, use_container_width=True)
-
-    st.divider()
 
     nome = st.text_input("Nome")
     usuario = st.text_input("Login")
@@ -354,6 +329,32 @@ elif menu == "Cadastro Usuários":
 
         st.success("Usuário cadastrado!")
 
+        cursor.execute("""
+           SELECT nome, usuario, senha, perfil
+           FROM usuarios
+           ORDER BY nome
+           """)
+
+        dados = cursor.fetchall()
+
+        lista = []
+
+        for nome, usuario, senha, perfil in dados:
+            lista.append([
+                nome,
+                usuario,
+                "******",
+                perfil
+            ])
+
+        df = pd.DataFrame(
+            lista,
+            columns=["Nome", "Login", "Senha", "Perfil"]
+        )
+
+        st.dataframe(df, use_container_width=True)
+
+        st.divider()
 
 # ----------------------------
 # REGISTRO PRESENÇA

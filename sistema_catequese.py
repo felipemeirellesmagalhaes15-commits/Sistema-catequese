@@ -297,6 +297,11 @@ elif menu == "Cadastro Catequizando":
 
     dados_turmas = cursor.fetchall()
 
+    # VERIFICA SE EXISTEM TURMAS
+    if not dados_turmas:
+        st.warning("⚠ Nenhuma turma cadastrada. Cadastre uma turma primeiro.")
+        st.stop()
+
     turmas_dict = {
         f"{t[1]} | Comunidade {t[2]} | Catequista {t[3]}": t[1]
         for t in dados_turmas
@@ -561,6 +566,11 @@ elif menu == "Registro Presença":
         """, (turmas_permitidas,))
 
     dados_turmas = cursor.fetchall()
+
+    # VERIFICA SE EXISTEM TURMAS
+    if not dados_turmas:
+        st.warning("⚠ Nenhuma turma cadastrada para registrar presença.")
+        st.stop()
 
     turmas_dict = {
         f"{t[0]} | Catequista: {t[1]}": t[0]

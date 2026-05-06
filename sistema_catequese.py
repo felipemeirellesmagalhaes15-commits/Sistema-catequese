@@ -116,6 +116,9 @@ with st.sidebar:
         if st.button("Cadastro Turmas"):
             st.session_state["menu"] = "Cadastro Turmas"
 
+        if st.button("Cadastro Catequistas"):
+            st.session_state["menu"] = "Cadastro Catequistas"
+
         if st.button("Cadastro Catequizando"):
             st.session_state["menu"] = "Cadastro Catequizando"
 
@@ -269,6 +272,77 @@ elif menu == "Cadastro Turmas":
     )
 
     st.dataframe(df,use_container_width=True)
+
+# ----------------------------
+# CADASTRO CATEQUISTAS
+# ----------------------------
+
+elif menu == "Cadastro Catequistas":
+
+    verificar_acesso("Cadastro Catequistas")
+
+    st.header("👨‍🏫 Cadastro de Catequistas")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        nome = st.text_input("Nome Completo")
+        endereco = st.text_input("Endereço")
+        bairro = st.text_input("Bairro")
+        cidade = st.text_input("Cidade")
+
+    with col2:
+        cursor.execute("SELECT nome FROM comunidades ORDER BY nome")
+        comunidades = [c[0] for c in cursor.fetchall()]
+
+        comunidade = st.selectbox("Comunidade", comunidades)
+
+        idade = st.number_input("Idade", min_value=10, max_value=100)
+
+        data_nascimento = st.date_input("Data de Nascimento")
+
+    st.subheader("📎 Documento (Nada Consta)")
+
+    arquivo = st.file_uploader("Anexar documento", type=["pdf", "jpg", "png"])
+
+    if st.button("Salvar Catequista"):
+
+        arquivo_bytes = None
+        nome_arquivo = None
+
+        if arquivo:
+            arquivo_bytes = arquivo.read()
+            nome_arquivo = arquivo.name
+
+        cursor.execute("""
+        INSERT INTO catequistas
+        (nome,endereco,bairro,cidade,comunidade,idade,data_nascimento,documento,nome_arquivo)
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """,(
+            nome,endereco,bairro,cidade,comunidade,idade,data_nascimento,arquivo_bytes,nome_arquivo
+        ))
+
+        conn.commit()
+
+        st.success("Catequista cadastrado com sucesso!")
+
+    st.divider()
+
+    # LISTAGEM
+    cursor.execute("""
+    SELECT nome, comunidade, cidade, idade, data_nascimento, nome_arquivo
+    FROM catequistas
+    ORDER BY nome
+    """)
+
+    dados = cursor.fetchall()
+
+    df = pd.DataFrame(
+        dados,
+        columns=["Nome","Comunidade","Cidade","Idade","Nascimento","Documento"]
+    )
+
+    st.dataframe(df, use_container_width=True)
 
 # ----------------------------
 # CADASTRO CATEQUIZANDO
@@ -690,20 +764,64 @@ elif menu == "Lista Catequistas":
     st.header("👨‍🏫 Lista de Catequistas")
 
     cursor.execute("""
-    SELECT nome,usuario,perfil
-    FROM usuarios
-    ORDER BY nome
+    SELECT 
+    id,
+    nome,
+    comunidade,
+    cidade,
+    idade,
+    data_nascimento,
+    nome_arquivo
+FROM catequistas
+ORDER BY nome
     """)
 
     dados = cursor.fetchall()
 
     df = pd.DataFrame(
         dados,
-        columns=["Nome","Usuário","Perfil"]
+        columns=[
+            "ID",
+            "Nome",
+            "Comunidade",
+            "Cidade",
+            "Idade",
+            "Data Nascimento",
+            "Documento"
+        ]
     )
 
-    st.dataframe(df,use_container_width=True)
+    # Formatar data
+    df["Data Nascimento"] = df["Data Nascimento"].apply(
+        lambda x: x.strftime("%d/%m/%Y") if x else ""
+    )
 
+    st.subheader("Lista de Catequistas")
+
+    # 👇 AQUI entra o novo código (no lugar do st.dataframe)
+
+    for i, row in df.iterrows():
+
+        col1, col2 = st.columns([4, 1])
+
+        col1.write(f"**{row['Nome']}** - {row['Comunidade']}")
+
+        if row["Documento"]:
+            cursor.execute("""
+            SELECT documento, nome_arquivo
+            FROM catequistas
+            WHERE id=%s
+            """, (row["ID"],))
+
+            doc = cursor.fetchone()
+
+            if doc and doc[0]:
+                col2.download_button(
+                    "⬇️ Documento",
+                    data=doc[0],
+                    file_name=doc[1],
+                    mime="application/octet-stream"
+                )
 # ----------------------------
 # RELATÓRIO FALTAS
 # ----------------------------
@@ -761,11 +879,6 @@ elif menu == "Relatório Faltas":
     )
     df["Data do Encontro"] = pd.to_datetime(df["Data do Encontro"]).dt.strftime("%d/%m/%Y")
     st.dataframe(df,use_container_width=True)
-
-
-# ----------------------------
-# RELATÓRIO FREQUÊNCIA
-# ----------------------------
 
 # ----------------------------
 # RELATÓRIO FREQUÊNCIA
@@ -858,6 +971,7 @@ elif menu == "Gestão de Acesso":
     abas = [
         "Dashboard",
         "Cadastro Turmas",
+        "Cadastro Catequistas",
         "Cadastro Catequizando",
         "Cadastro Usuários",
         "Registro Presença",

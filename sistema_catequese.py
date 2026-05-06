@@ -299,8 +299,12 @@ elif menu == "Cadastro Catequistas":
 
         idade = st.number_input("Idade", min_value=10, max_value=100)
 
+        from datetime import date
+
         data_nascimento = st.date_input(
             "Data de Nascimento",
+            min_value=date(1950, 1, 1),
+            max_value=date.today(),
             format="DD/MM/YYYY"
         )
 

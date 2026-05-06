@@ -299,7 +299,10 @@ elif menu == "Cadastro Catequistas":
 
         idade = st.number_input("Idade", min_value=10, max_value=100)
 
-        data_nascimento = st.date_input("Data de Nascimento")
+        data_nascimento = st.date_input(
+            "Data de Nascimento",
+            format="DD/MM/YYYY"
+        )
 
     st.subheader("📎 Documento (Nada Consta)")
 

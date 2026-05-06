@@ -249,7 +249,14 @@ elif menu == "Cadastro Turmas":
 
     comunidade = st.selectbox("Comunidade", comunidades)
 
-    catequista = st.text_input("Catequista")
+    cursor.execute("SELECT nome FROM catequistas ORDER BY nome")
+    lista_catequistas = [c[0] for c in cursor.fetchall()]
+
+    if not lista_catequistas:
+        st.warning("⚠ Nenhum catequista cadastrado. Cadastre primeiro.")
+        st.stop()
+
+    catequista = st.selectbox("Catequista", lista_catequistas)
 
     if st.button("Salvar Turma"):
 
